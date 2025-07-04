@@ -1,0 +1,9 @@
+enum Role {
+   ADMIN
+   SUPER
+   USER
+}
+
+
+
+
