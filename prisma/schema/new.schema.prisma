@@ -1,0 +1,12 @@
+model New {
+    id       Int     @id @default(autoincrement())
+    title    String?
+    subtitle String?
+    image    String?
+
+    expired DateTime?
+
+    createdt    DateTime    @default(now())
+    updatedAt   DateTime    @updatedAt
+    work_status WORK_STATUS @default(WORKING)
+}

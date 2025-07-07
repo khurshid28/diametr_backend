@@ -2,8 +2,58 @@ enum Role {
    ADMIN
    SUPER
    USER
+   WORKER
 }
 
 
 
+enum WORK_STATUS {
+   WORKING
+   BLOCKED
+   DELETED
+}
 
+
+enum DELIVERY_TYPE {
+   YANDEX
+   MARKET
+   FIXED
+}
+
+enum PRODUCT_TYPE {
+   COLOR
+   WEIGHT
+   LENGTH
+   SIZE
+   COUNTRY
+
+}
+
+enum AD_TYPE {
+   SHOP
+   WORKER
+   REGION
+}
+
+
+
+enum DATE_TYPE {
+   ONCE
+   HOUR
+   DAY 
+   MONTH
+}
+
+enum ORDER_STATUS {
+   STARTED
+   FINISHED
+   CANCELED
+   CONFIRMED
+}
+
+
+enum PAYMENT_TYPE {
+   SHOP 
+   WORKER 
+   AD
+}

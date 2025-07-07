@@ -1,0 +1,25 @@
+model Order {
+    id     Int          @id @default(autoincrement())
+    status ORDER_STATUS @default(STARTED)
+
+    user_id Int?
+    user    User? @relation(fields: [user_id], references: [id])
+
+
+    shop_id Int?
+    shop    Shop? @relation(fields: [shop_id], references: [id])
+
+
+    lat             Float?
+    lon            Float?
+
+    amount Int?
+    delivery_type DELIVERY_TYPE? @default(MARKET)
+
+
+    products ShopProduct[]
+
+    createdt    DateTime    @default(now())
+    updatedAt   DateTime    @updatedAt
+    work_status WORK_STATUS @default(WORKING)
+}

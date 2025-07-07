@@ -1,6 +1,6 @@
 {
   "name": "diametr_backend",
- "version": "0.0.1",
+  "version": "0.0.1",
   "description": "",
   "author": "",
   "private": true,
@@ -30,6 +30,7 @@
     "bcrypt": "^5.1.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
+    "date-fns": "^4.1.0",
     "mahad_backend": "file:",
     "multer": "^1.4.5-lts.1",
     "nestjs-form-data": "^1.9.93",

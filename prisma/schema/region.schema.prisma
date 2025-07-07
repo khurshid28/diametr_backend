@@ -1,13 +1,9 @@
-model User {
+model Region {
   id    Int     @default(autoincrement()) @id
-  fullname  String?
+  name  String?
   image  String?
-  phone String  @unique
-  password String
-
-  orders Order[]
-
-  role Role @default(USER)
+  shops Shop[]
+  ads Ad[]
   createdt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
 }

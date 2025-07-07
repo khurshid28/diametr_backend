@@ -1,0 +1,31 @@
+model Shop {
+    id    Int     @id @default(autoincrement())
+    name  String?
+    image String?
+
+    work_status     WORK_STATUS @default(WORKING)
+    address         String?
+    lat             Float?
+    lon            Float?
+    delivery_amount Int?
+    yandex_delivery Boolean @default(true)
+    market_delivery Boolean @default(true)
+    fixed_delivery Boolean @default(true)
+    expired DateTime?
+
+    region_id Int?
+    region    Region? @relation(fields: [region_id], references: [id])
+
+
+    admins Admin[]
+    ads Ad[]
+
+    products ShopProduct[]
+
+    orders Order[]
+
+    payments Payment[]
+
+    createdt  DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}

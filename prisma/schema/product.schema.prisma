@@ -1,0 +1,16 @@
+model Product {
+    id          Int           @id @default(autoincrement())
+    name    String?
+    desc        String?
+    image       String?
+    work_status WORK_STATUS   @default(WORKING)
+    type        PRODUCT_TYPE?
+
+    category_id Int?
+    category    Category? @relation(fields: [category_id], references: [id])
+
+    createdt  DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    items ProductItem[]
+}

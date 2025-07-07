@@ -6,16 +6,6 @@ import { AuthModule } from './auth/auth.module';
 import { JwtModule } from '@nestjs/jwt';
 import { PrismaClientModule } from './_prisma_client/prisma_client.module';
 import { ConfigModule } from '@nestjs/config';
-import { StudentModule } from './student/student.module';
-import { ResultModule } from './result/result.module';
-import { SubjectModule } from './subject/subject.module';
-import { TeacherModule } from './teacher/teacher.module';
-import { AdminModule } from './admin/admin.module';
-import { SectionModule } from './section/section.module';
-import { GroupModule } from './group/group.module';
-import { BookModule } from './book/book.module';
-import { TestModule } from './test/test.module';
-import { TestItemModule } from './test-item/test-item.module';
 
 
 @Module({
@@ -32,16 +22,7 @@ import { TestItemModule } from './test-item/test-item.module';
 
     AuthModule,
     PrismaClientModule,
-    StudentModule,
-    GroupModule,
-    ResultModule,
-    BookModule,
-    SubjectModule,
-    TestModule,
-    TeacherModule,
-    AdminModule,
-    SectionModule,
-    TestItemModule,
+
   ],
   controllers: [AppController],
   providers: [AppService, ],
