@@ -1,10 +1,10 @@
 model New {
     id       Int     @id @default(autoincrement())
-    title    String?
-    subtitle String?
+    title    String?     @db.Text
+    subtitle String?   @db.Text
     image    String?
 
-    expired DateTime?
+    expired DateTime? 
 
     createdt    DateTime    @default(now())
     updatedAt   DateTime    @updatedAt

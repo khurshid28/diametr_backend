@@ -33,16 +33,21 @@ import { PrismaClientService } from 'src/_prisma_client/prisma_client.service';
       } = await this.jwtService.verifyAsync(token);
      let where  = {   id: payload.user_id}
       let user: any;
-      if (payload.role == Role.STUDENT) {
-        user = await this.prismaService.student.findUnique({
+      if (payload.role == Role.USER) {
+        user = await this.prismaService.user.findUnique({
           where
         });
-      } else if (payload.role == Role.TEACHER) {
-        user = await this.prismaService.teacher.findUnique({
+      } else if (payload.role == Role.WORKER) {
+        user = await this.prismaService.worker.findUnique({
           where
         });
       } else if (payload.role == Role.ADMIN) {
         user = await this.prismaService.admin.findUnique({
+          where
+        });
+      } 
+       else if (payload.role == Role.SUPER) {
+        user = await this.prismaService.super.findUnique({
           where
         });
       } 

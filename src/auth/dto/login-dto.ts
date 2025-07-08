@@ -4,7 +4,7 @@ import { IsEmail, IsNotEmpty, IsString, Min, MinLength } from 'class-validator';
 export class LoginDto {
   @IsNotEmpty()
   @IsString()
-  @MinLength(13)
+  @MinLength(12)
   login: string;
 
   @IsNotEmpty()

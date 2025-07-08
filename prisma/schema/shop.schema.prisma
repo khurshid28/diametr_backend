@@ -5,6 +5,7 @@ model Shop {
 
     work_status     WORK_STATUS @default(WORKING)
     address         String?
+    inn         String?
     lat             Float?
     lon            Float?
     delivery_amount Int?

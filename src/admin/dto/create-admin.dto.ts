@@ -1,24 +1,35 @@
-
-
-import { IsEmail, IsNotEmpty, IsNumber, IsPhoneNumber, IsString, Length, Min, MinLength } from 'class-validator';
-
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsPhoneNumber,
+  IsString,
+  Length,
+  Min,
+  MinLength,
+} from 'class-validator';
 
 export class CreateAdminDto {
+  @IsNotEmpty()
+  @IsString()
+  @MinLength(4)
+  fullname: string;
 
-    @IsNotEmpty()
-    @IsString()
-    @MinLength(4)
-    name: string;
-  
-    @IsNotEmpty()
-    @IsString()
-    @IsPhoneNumber("UZ")
-    @Length(13)
-    phone: string;
+  @IsNotEmpty()
+  @IsString()
+  @IsPhoneNumber('UZ')
+  @Length(13)
+  phone: string;
 
+  @IsOptional()
+  password: string;
 
-    
-    password: string;
+  @IsOptional()
+  chatid: string;
 
-
+  @IsNumber()
+  @IsNotEmpty()
+  @Min(1)
+  shop_id: number;
 }

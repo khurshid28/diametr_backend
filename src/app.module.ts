@@ -6,6 +6,14 @@ import { AuthModule } from './auth/auth.module';
 import { JwtModule } from '@nestjs/jwt';
 import { PrismaClientModule } from './_prisma_client/prisma_client.module';
 import { ConfigModule } from '@nestjs/config';
+import { RegionModule } from './region/region.module';
+import { ShopModule } from './shop/shop.module';
+import { NewModule } from './new/new.module';
+import { AdminModule } from './admin/admin.module';
+import { CategoryModule } from './category/category.module';
+import { ProductModule } from './product/product.module';
+import { ServiceModule } from './service/service.module';
+import { WorkerModule } from './worker/worker.module';
 
 
 @Module({
@@ -22,6 +30,14 @@ import { ConfigModule } from '@nestjs/config';
 
     AuthModule,
     PrismaClientModule,
+    RegionModule,
+    ShopModule,
+    NewModule,
+    AdminModule,
+    CategoryModule,
+    ProductModule,
+    ServiceModule,
+    WorkerModule
 
   ],
   controllers: [AppController],

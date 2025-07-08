@@ -8,7 +8,6 @@ import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
 import { PrismaClientService } from 'src/_prisma_client/prisma_client.service';
 import { generatePassword } from 'src/_utils/number.gen';
-import { NotFoundError } from 'rxjs';
 
 @Injectable()
 export class AdminService {
@@ -16,20 +15,31 @@ export class AdminService {
   private logger = new Logger('Admin service');
   async create(data: CreateAdminDto) {
     this.logger.log('create');
-    let student = await this.prisma.admin.findUnique({
+    let admin = await this.prisma.admin.findUnique({
       where: { phone: data.phone },
     });
-    if (student) {
+    if (admin) {
       throw new BadRequestException('This phone is used');
     }
+
+    let shop = await this.prisma.shop.findUnique({
+      where: {
+        id: data.shop_id,
+      },
+    });
+    if (!shop) {
+      throw new NotFoundException('Shop not found');
+    }
+
     let password = generatePassword({
       length: 8,
     });
     data.password = password;
-    student = await this.prisma.admin.create({
+
+    admin = await this.prisma.admin.create({
       data: data,
     });
-    return student;
+    return admin;
   }
 
   async findAll() {
@@ -49,8 +59,8 @@ export class AdminService {
     return admin;
   }
 
- async update(id: number, data: UpdateAdminDto) {
-  this.logger.log('update');
+  async update(id: number, data: UpdateAdminDto) {
+    this.logger.log('update');
     let admin = await this.prisma.admin.findUnique({
       where: { id },
     });
@@ -59,8 +69,8 @@ export class AdminService {
     }
 
     return await this.prisma.admin.update({
-      where : {id},
-      data
+      where: { id },
+      data,
     });
   }
 
@@ -74,7 +84,7 @@ export class AdminService {
     }
 
     return await this.prisma.admin.delete({
-      where : {id}
+      where: { id },
     });
   }
 }
