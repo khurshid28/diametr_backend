@@ -3,7 +3,7 @@ model User {
   fullname  String?
   image  String?
   phone String  @unique
-  password String
+
 
   orders Order[]
 

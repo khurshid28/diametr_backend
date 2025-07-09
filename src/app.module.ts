@@ -14,6 +14,10 @@ import { CategoryModule } from './category/category.module';
 import { ProductModule } from './product/product.module';
 import { ServiceModule } from './service/service.module';
 import { WorkerModule } from './worker/worker.module';
+import { PaymentModule } from './payment/payment.module';
+import { SmsModule } from './sms/sms.module';
+import { UserModule } from './user/user.module';
+import { AdModule } from './ad/ad.module';
 
 
 @Module({
@@ -37,7 +41,11 @@ import { WorkerModule } from './worker/worker.module';
     CategoryModule,
     ProductModule,
     ServiceModule,
-    WorkerModule
+    WorkerModule,
+    PaymentModule,
+    SmsModule,
+    UserModule,
+    AdModule
 
   ],
   controllers: [AppController],

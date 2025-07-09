@@ -23,20 +23,15 @@ export class AuthService {
     this.logger.log('login');
 
     type userType =
-      | Prisma.UserWhereUniqueInput
       | Prisma.AdminWhereUniqueInput
       | Prisma.SuperWhereUniqueInput
       | Prisma.WorkerWhereUniqueInput;
     let where = { phone: '+' + data.login, password: data.password };
-    let user: userType = await this.prisma.user.findUnique({
+
+    let user: userType = await this.prisma.worker.findUnique({
       where,
     });
 
-    if (!user) {
-      user = await this.prisma.worker.findUnique({
-        where,
-      });
-    }
     if (!user) {
       user = await this.prisma.admin.findUnique({
         where,

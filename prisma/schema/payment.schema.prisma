@@ -1,7 +1,7 @@
 model Payment {
     id String @id @default(uuid())
 
-    payment_type PAYMENT_TYPE?
+    type PAYMENT_TYPE?
 
     ad_id Int?
     ad    Ad?  @relation(fields: [ad_id], references: [id])

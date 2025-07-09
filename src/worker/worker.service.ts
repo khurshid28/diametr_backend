@@ -13,7 +13,7 @@ import { UpdateWorkerDto } from './dto/update-worker.dto';
 @Injectable()
 export class WorkerService {
   constructor(private readonly prisma: PrismaClientService) {}
-  private logger = new Logger('worker service');
+  private logger = new Logger('Worker service');
   async create(data: CreateWorkerDto) {
     this.logger.log('create');
     let worker = await this.prisma.worker.findUnique({

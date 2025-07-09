@@ -33,6 +33,7 @@ enum AD_TYPE {
    SHOP
    WORKER
    REGION
+   PRODUCT
 }
 
 

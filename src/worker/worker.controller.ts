@@ -17,8 +17,8 @@ export class WorkerController {
   constructor(private readonly workerService: WorkerService) {}
 
   @Post()
-  create(@Body() createAdminDto: CreateWorkerDto) {
-    return this.workerService.create(createAdminDto);
+  create(@Body() data: CreateWorkerDto) {
+    return this.workerService.create(data);
   }
 
   @Get('/all')
@@ -32,8 +32,8 @@ export class WorkerController {
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() updateAdminDto: UpdateWorkerDto) {
-    return this.workerService.update(+id, updateAdminDto);
+  update(@Param('id') id: string, @Body() data: UpdateWorkerDto) {
+    return this.workerService.update(+id, data);
   }
 
   @Delete(':id')

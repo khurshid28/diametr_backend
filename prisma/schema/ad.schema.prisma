@@ -12,6 +12,15 @@ model Ad {
     region_id Int?
     region    Region? @relation(fields: [region_id], references: [id])
 
+
+    product_id Int?
+    product    Product? @relation(fields: [product_id], references: [id])
+
+
+    worker_id Int?
+    worker    Worker? @relation(fields: [worker_id], references: [id])
+
+
     type AD_TYPE?
 
     payments Payment[]

@@ -52,7 +52,7 @@ export class CreateWorkerDto {
 
   @IsNotEmpty()
   @IsEnum(DATE_TYPE, {
-    message: 'type can be ONCE,HOUR,DAY,MONTH',
+    message: 'date_type can be ONCE,HOUR,DAY,MONTH',
   })
   @IsOptional()
   @IsString()

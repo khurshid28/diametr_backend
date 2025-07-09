@@ -1,6 +1,6 @@
 model Product {
     id          Int           @id @default(autoincrement())
-    name    String?
+    name        String?
     desc        String?
     image       String?
     work_status WORK_STATUS   @default(WORKING)
@@ -13,4 +13,5 @@ model Product {
     updatedAt DateTime @updatedAt
 
     items ProductItem[]
+    ads   Ad[]
 }
