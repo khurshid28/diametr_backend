@@ -164,6 +164,9 @@ export class OrderService {
 
     let order = await this.prisma.order.findUnique({
       where: { id },
+      include: {
+        products: true,
+      },
     });
     if (!order) {
       throw new NotFoundException('order not found');
@@ -176,13 +179,52 @@ export class OrderService {
     } else if (order.status == 'CONFIRMED') {
       throw new BadRequestException('order is already confirmed');
     }
-    return await this.prisma.order.update({
-      where: {
-        id: order.id,
-      },
-      data: {
-        status: ORDER_STATUS.FINISHED,
-      },
+
+    return await this.prisma.$transaction(async (tx) => {
+      await Promise.all(
+        order.products.map(async (e) => {
+          let shopProduct = await tx.shopProduct.findUnique({
+            where: {
+              id: e.shop_product_id,
+            },
+            include: {
+              product_item: {
+                include: {
+                  product: true,
+                },
+              },
+            },
+          });
+
+          if (!shopProduct) {
+            throw new NotFoundException(
+              `shopProduct not found by id #${e.shop_product_id}`,
+            );
+          } else if (e.count > shopProduct.count) {
+            throw new BadRequestException(
+              `Product isnot enough not #${shopProduct.product_item.product.name} ,${shopProduct.product_item.name}  - ${e.count}x`,
+            );
+          }
+
+          await tx.shopProduct.update({
+            where: {
+              id: e.shop_product_id,
+            },
+            data: {
+              count: shopProduct.count - e.count,
+            },
+          });
+        }),
+      );
+
+      return await tx.order.update({
+        where: {
+          id: order.id,
+        },
+        data: {
+          status: ORDER_STATUS.FINISHED,
+        },
+      });
     });
   }
   async confirm(id: number) {
