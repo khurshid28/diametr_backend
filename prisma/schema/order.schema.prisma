@@ -5,21 +5,30 @@ model Order {
     user_id Int?
     user    User? @relation(fields: [user_id], references: [id])
 
-
     shop_id Int?
     shop    Shop? @relation(fields: [shop_id], references: [id])
 
+    lat Float?
+    lon Float?
 
-    lat             Float?
-    lon            Float?
-
-    amount Int?
+    amount        Int?
     delivery_type DELIVERY_TYPE? @default(MARKET)
+    desc String?
 
-
-    products ShopProduct[]
+    products OrderProduct[]
 
     createdt    DateTime    @default(now())
     updatedAt   DateTime    @updatedAt
     work_status WORK_STATUS @default(WORKING)
+}
+
+model OrderProduct {
+    id              Int          @id @default(autoincrement())
+    count           Int          @default(1)
+    amount          Int
+    shop_product_id Int?
+    shop_product    ShopProduct? @relation(fields: [shop_product_id], references: [id])
+
+    order_id Int?
+    order    Order? @relation(fields: [order_id], references: [id])
 }

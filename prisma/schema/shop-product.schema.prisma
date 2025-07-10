@@ -9,7 +9,8 @@ model ShopProduct {
     product_item_id Int?
     product_item    ProductItem? @relation(fields: [product_item_id], references: [id])
 
-    orders Order[]
+    
+    order_products OrderProduct[]
 
     work_status WORK_STATUS   @default(WORKING)
 

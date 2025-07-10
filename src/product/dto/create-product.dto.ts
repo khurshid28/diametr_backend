@@ -30,7 +30,7 @@ export class CreateProductDto {
 
   @IsNotEmpty()
   @IsEnum(PRODUCT_TYPE, {
-    message: 'type can be COLOR,WEIGHT,LENGTH,SIZE,COUNTRY',
+    message: 'type can be COLOR,WEIGHT,LENGTH,SIZE,COUNTRY,LITR',
   })
   @IsOptional()
   @IsString()
