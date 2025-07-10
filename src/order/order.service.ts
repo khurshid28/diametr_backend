@@ -43,11 +43,22 @@ export class OrderService {
               where: {
                 id: e.shop_product_id,
               },
+              include: {
+                product_item: {
+                  include: {
+                    product: true,
+                  },
+                },
+              },
             });
 
             if (!shopProduct) {
               throw new NotFoundException(
                 `shopProduct not found by id #${e.shop_product_id}`,
+              );
+            } else if (e.count > shopProduct.count) {
+              throw new BadRequestException(
+                `Product isnot enough not #${shopProduct.product_item.product.name} ,${shopProduct.product_item.name}  - ${e.count}x`,
               );
             }
 
