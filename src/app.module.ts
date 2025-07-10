@@ -21,6 +21,7 @@ import { AdModule } from './ad/ad.module';
 import { OrderModule } from './order/order.module';
 import { ShopProductModule } from './shop-product/shop-product.module';
 import { ProductItemModule } from './product-item/product-item.module';
+import { AxiosClientModule } from './_axios_client/axios_client.module';
 
 
 @Module({
@@ -51,11 +52,12 @@ import { ProductItemModule } from './product-item/product-item.module';
     AdModule,
     OrderModule,
     ShopProductModule,
-    ProductItemModule
+    ProductItemModule,
+    AxiosClientModule
 
   ],
   controllers: [AppController],
-  providers: [AppService, ],
+  providers: [AppService,  ],
 })
 
 
