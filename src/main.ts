@@ -4,6 +4,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { ConsoleLogger, ValidationPipe } from '@nestjs/common';
 import { GlobalExceptionFilter } from './_middlewares/error-handler';
 import { join } from 'path';
+import { ResponseLoggingInterceptor } from './_middlewares/reponse-logging-handler';
 
 async function main() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -28,6 +29,7 @@ async function main() {
   app.useGlobalPipes(new ValidationPipe({
     transform : true
   }));
+   app.useGlobalInterceptors(new ResponseLoggingInterceptor());
 
 
   app.useGlobalFilters(new GlobalExceptionFilter());

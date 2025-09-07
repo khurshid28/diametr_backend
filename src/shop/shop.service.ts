@@ -31,6 +31,10 @@ export class ShopService {
     this.logger.log('findOne');
     let shop = await this.prisma.shop.findUnique({
       where: { id },
+      include : {
+        admins : true,
+        products : true
+      }
     });
     if (!shop) {
       throw new NotFoundException('shop not found');
