@@ -7,4 +7,6 @@ model Verify {
 
   createdt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
+
+  @@map("verify")
 }

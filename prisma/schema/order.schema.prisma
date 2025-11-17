@@ -20,6 +20,8 @@ model Order {
     createdt    DateTime    @default(now())
     updatedAt   DateTime    @updatedAt
     work_status WORK_STATUS @default(WORKING)
+
+    @@map("order")
 }
 
 model OrderProduct {
@@ -31,4 +33,6 @@ model OrderProduct {
 
     order_id Int?
     order    Order? @relation(fields: [order_id], references: [id])
+
+    @@map("orderproduct")
 }

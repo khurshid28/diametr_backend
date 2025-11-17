@@ -8,4 +8,6 @@ model Super {
   role Role @default(SUPER)
   createdt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
+
+  @@map("super")
 }

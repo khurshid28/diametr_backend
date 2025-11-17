@@ -13,4 +13,6 @@ model ProductItem {
     shop_products ShopProduct[]
     createdt  DateTime @default(now())
     updatedAt DateTime @updatedAt
+
+    @@map("productitem")
 }

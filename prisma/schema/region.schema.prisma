@@ -6,4 +6,6 @@ model Region {
   ads Ad[]
   createdt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
+
+  @@map("region")
 }

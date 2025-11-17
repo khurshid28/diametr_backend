@@ -22,4 +22,6 @@ model Worker {
 
     createdt  DateTime @default(now())
     updatedAt DateTime @updatedAt
+
+    @@map("worker")
 }

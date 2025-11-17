@@ -28,4 +28,6 @@ model Ad {
     createdt    DateTime    @default(now())
     updatedAt   DateTime    @updatedAt
     work_status WORK_STATUS @default(WORKING)
+
+    @@map("ad")
 }

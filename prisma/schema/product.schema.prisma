@@ -14,4 +14,6 @@ model Product {
 
     items ProductItem[]
     ads   Ad[]
+
+    @@map("product")
 }
