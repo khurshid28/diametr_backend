@@ -1,8 +1,10 @@
 model Product {
-    id          Int           @id @default(autoincrement())
-    name        String?
-    desc        String?
-    image       String?
+    id      Int     @id @default(autoincrement())
+    name    String?
+    name_uz String?
+    name_ru String?
+    desc    String?
+    image   String?
     work_status WORK_STATUS   @default(WORKING)
     type        PRODUCT_TYPE?
 

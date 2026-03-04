@@ -1,37 +1,51 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PRODUCT_TYPE } from '@prisma/client';
 import {
-  IsEmail,
   IsEnum,
-  isNotEmpty,
   IsNotEmpty,
   IsNumber,
   IsOptional,
-  IsPhoneNumber,
   IsString,
-  Length,
   Min,
   MinLength,
 } from 'class-validator';
 
 export class CreateProductDto {
-  @IsNotEmpty()
+  @ApiPropertyOptional({ example: 'G’isht', description: 'Mahsulot nomi' })
+  @IsOptional()
   @IsString()
-  @MinLength(4)
   name: string;
 
+  @ApiPropertyOptional({ example: 'G’isht', description: 'Nomi (uzbekcha)', minLength: 2 })
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  name_uz: string;
+
+  @ApiPropertyOptional({ example: 'Кирпич', description: 'Nomi (ruscha)', minLength: 2 })
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  name_ru: string;
+
+  @ApiPropertyOptional({ example: 'Qurilish g’ishti', description: 'Tavsif' })
   @IsOptional()
   @IsString()
   desc: string;
 
+  @ApiProperty({ example: 1, description: 'Kategoriya ID', minimum: 1 })
   @IsNumber()
   @IsNotEmpty()
   @Min(1)
   category_id: number;
 
-  @IsNotEmpty()
-  @IsEnum(PRODUCT_TYPE, {
-    message: 'type can be COLOR,WEIGHT,LENGTH,SIZE,COUNTRY,LITR',
+  @ApiPropertyOptional({
+    enum: PRODUCT_TYPE,
+    example: PRODUCT_TYPE.COLOR,
+    description: 'Tur: COLOR, WEIGHT, LENGTH, SIZE, COUNTRY, LITR',
   })
+  @IsNotEmpty()
+  @IsEnum(PRODUCT_TYPE, { message: 'type can be COLOR,WEIGHT,LENGTH,SIZE,COUNTRY,LITR' })
   @IsOptional()
   @IsString()
   type: PRODUCT_TYPE;

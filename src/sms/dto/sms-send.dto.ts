@@ -1,17 +1,13 @@
+import { ApiProperty } from '@nestjs/swagger';
 import {
-  IsEmail,
   IsNotEmpty,
-  IsNumber,
-  IsOptional,
   IsPhoneNumber,
   IsString,
   Length,
-  Min,
-  MinLength,
 } from 'class-validator';
 
 export class SmsSendDto {
-  
+  @ApiProperty({ example: '+998901234567', description: 'UZ formatidagi telefon raqam' })
   @IsNotEmpty()
   @IsString()
   @IsPhoneNumber('UZ')

@@ -3,31 +3,24 @@ import { Type } from 'class-transformer';
 import {
   ArrayNotEmpty,
   IsArray,
-  IsEmail,
   IsEnum,
   IsNotEmpty,
   IsNumber,
   IsOptional,
-  IsPhoneNumber,
   IsString,
-  Length,
   Min,
-  MinLength,
-  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { ProductItemDto } from './product-item-dto';
 
 export class CreateOrderDto {
-  @ValidateIf((o) => o.delivery_type !== DELIVERY_TYPE.MARKET)
-  @IsNotEmpty()
+  @IsOptional()
   @IsNumber()
-  lat: number;
+  lat?: number;
 
-  @ValidateIf((o) => o.delivery_type !== DELIVERY_TYPE.MARKET)
-  @IsNotEmpty()
+  @IsOptional()
   @IsNumber()
-  lon: number;
+  lon?: number;
 
   @IsNumber()
   @IsNotEmpty()
@@ -36,20 +29,33 @@ export class CreateOrderDto {
 
   @IsNotEmpty()
   @IsNumber()
-  @Min(1000)
+  @Min(0)
   amount: number;
 
-  @IsString()
-  @IsNumber()
+  /** Text delivery address */
   @IsOptional()
-  desc: number;
+  @IsString()
+  address?: string;
+
+  /** Text description / notes */
+  @IsOptional()
+  @IsString()
+  desc?: string;
+
+  /** Payment method: payme | click | uzum | cash */
+  @IsOptional()
+  @IsString()
+  payment_type?: string;
+
+  /** Promo code (UPPERCASE) */
+  @IsOptional()
+  @IsString()
+  promo_code?: string;
 
   @IsNotEmpty()
   @IsEnum(DELIVERY_TYPE, {
-    message: 'delivery_type can be YANDEX,MARKET,FIXED',
+    message: 'delivery_type can be YANDEX, MARKET, FIXED',
   })
-  @IsNotEmpty()
-  @IsString()
   delivery_type: DELIVERY_TYPE;
 
   @ValidateNested({ each: true })

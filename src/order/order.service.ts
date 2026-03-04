@@ -4,16 +4,19 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-
 import { PrismaClientService } from 'src/_prisma_client/prisma_client.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { ORDER_STATUS } from '@prisma/client';
+import { PromoCodeService } from 'src/promo-code/promo-code.service';
 
 @Injectable()
 export class OrderService {
-  constructor(private readonly prisma: PrismaClientService) {}
+  constructor(
+    private readonly prisma: PrismaClientService,
+    private readonly promoCodeService: PromoCodeService,
+  ) {}
   private logger = new Logger('Order service');
-  async create(data: CreateOrderDto) {
+  async create(data: CreateOrderDto, userId?: number) {
     this.logger.log('create');
     let shop = await this.prisma.shop.findUnique({
       where: { id: data.shop_id },
@@ -22,16 +25,48 @@ export class OrderService {
       throw new NotFoundException('shop not found');
     }
 
+    // ── Promo code validation ──────────────────────────────────────
+    let promoCodeId: number | null = null;
+    let discountPercent: number | null = null;
+    let discountAmount: number | null = null;
+
+    if (data.promo_code && userId) {
+      const promo = await this.promoCodeService.validate(
+        data.promo_code.toUpperCase(),
+        userId,
+      );
+      promoCodeId = promo.id;
+      discountPercent = promo.discount;
+      discountAmount = Math.round((data.amount * promo.discount) / 100);
+    }
+
+    const finalAmount =
+      discountAmount != null ? data.amount - discountAmount : data.amount;
+
     let order = await this.prisma.$transaction(async (tx) => {
       let order = await tx.order.create({
         data: {
           shop_id: data.shop_id,
-          amount: data.amount,
+          amount: finalAmount,
           lat: data.lat,
-          lon: data.amount,
+          lon: data.lon,
+          address: data.address,
+          desc: data.desc,
+          payment_type: data.payment_type,
           delivery_type: data.delivery_type,
+          user_id: userId ?? null,
+          promo_code_id: promoCodeId,
+          discount_percent: discountPercent,
+          discount_amount: discountAmount,
         },
       });
+
+      // Mark promo code as used
+      if (promoCodeId && userId) {
+        await tx.promoCodeUse.create({
+          data: { promo_code_id: promoCodeId, user_id: userId },
+        });
+      }
 
       await Promise.all(
         data.products
@@ -78,6 +113,7 @@ export class OrderService {
       where: { id: order.id },
       include: {
         shop: true,
+        promo_code: true,
         products: {
           include: {
             shop_product: {
@@ -117,6 +153,28 @@ export class OrderService {
     });
     return orders;
   }
+  async findByUser(userId: number) {
+    this.logger.log(`findByUser: ${userId}`);
+    return this.prisma.order.findMany({
+      where: { user_id: userId },
+      orderBy: { createdt: 'desc' },
+      include: {
+        shop: { select: { id: true, name: true, image: true } },
+        products: {
+          include: {
+            shop_product: {
+              include: {
+                product_item: {
+                  include: { product: { select: { name: true } } },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
   async findOne(id: number) {
     this.logger.log('findOne');
     let order = await this.prisma.order.findUnique({

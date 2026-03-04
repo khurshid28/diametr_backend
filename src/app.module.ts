@@ -22,6 +22,7 @@ import { OrderModule } from './order/order.module';
 import { ShopProductModule } from './shop-product/shop-product.module';
 import { ProductItemModule } from './product-item/product-item.module';
 import { AxiosClientModule } from './_axios_client/axios_client.module';
+import { PromoCodeModule } from './promo-code/promo-code.module';
 
 
 @Module({
@@ -53,7 +54,8 @@ import { AxiosClientModule } from './_axios_client/axios_client.module';
     OrderModule,
     ShopProductModule,
     ProductItemModule,
-    AxiosClientModule
+    AxiosClientModule,
+    PromoCodeModule,
 
   ],
   controllers: [AppController],

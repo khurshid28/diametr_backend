@@ -6,6 +6,7 @@ model User {
 
 
   orders Order[]
+  promo_code_uses PromoCodeUse[]
 
   role Role @default(USER)
   createdt        DateTime           @default(now())

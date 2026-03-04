@@ -1,36 +1,26 @@
-import { DATE_TYPE } from '@prisma/client';
-import { Transform } from 'class-transformer';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  IsDate,
-  IsEmail,
-  IsEnum,
   IsNotEmpty,
-  isNumber,
   IsNumber,
-  IsNumberString,
   IsOptional,
-  IsPhoneNumber,
   IsString,
-  Length,
-  Matches,
   Min,
-  MinLength,
 } from 'class-validator';
-import { addHours, parse } from 'date-fns';
 
 export class CreateProductItemDto {
+  @ApiProperty({ example: 'Qizil rang, 250g', description: 'Variant nomi' })
   @IsNotEmpty()
   @IsString()
   name: string;
 
+  @ApiPropertyOptional({ example: 'Maxsus qadoqlash', description: 'Tavsif' })
   @IsOptional()
   @IsString()
   desc: string;
 
+  @ApiProperty({ example: 1, description: 'Mahsulot ID', minimum: 1 })
   @IsNumber()
   @IsNotEmpty()
   @Min(1)
   product_id: number;
-
-  
 }

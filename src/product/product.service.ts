@@ -24,21 +24,13 @@ export class ProductService {
 
   async findAll() {
     this.logger.log('findAll');
-    // const products = await this.prisma.product.findMany();
-
-        const products = await this.prisma.$queryRaw<
-      Array<{ id: number; name: string; image: string; count: number }>
-    >`
-  SELECT p.id, p.name, p.image,
-         COALESCE(SUM(op.count), 0) AS count
-  FROM Product p
-  LEFT JOIN ProductItem pi ON pi.product_id = p.id
-  LEFT JOIN ShopProduct sp ON sp.product_item_id = pi.id
-  LEFT JOIN OrderProduct op ON op.shop_product_id = sp.id
- 
-  GROUP BY p.id
-`;
-    return products;
+    return await this.prisma.product.findMany({
+      where: { work_status: 'WORKING' },
+      include: {
+        category: { select: { id: true, name: true, name_uz: true, name_ru: true } },
+      },
+      orderBy: { id: 'desc' },
+    });
   }
 
   async findByCategory(category_id: string | undefined) {
@@ -82,6 +74,21 @@ export class ProductService {
 
     let product = await this.prisma.product.findUnique({
       where: { id },
+      include: {
+        category: { select: { id: true, name: true, name_uz: true, name_ru: true } },
+        items: {
+          where: { work_status: 'WORKING' },
+          include: {
+            shop_products: {
+              where: { work_status: 'WORKING' },
+              include: {
+                shop: { select: { id: true, name: true, address: true, lat: true, lon: true, image: true } },
+              },
+              orderBy: { price: 'asc' },
+            },
+          },
+        },
+      },
     });
     if (!product) {
       throw new NotFoundException('product not found');

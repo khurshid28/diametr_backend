@@ -11,12 +11,25 @@ import {
 } from 'class-validator';
 
 export class CreateCategoryDto {
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  @MinLength(4)
   name: string;
 
   @IsOptional()
   @IsString()
+  @MinLength(2)
+  name_uz: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  name_ru: string;
+
+  @IsOptional()
+  @IsString()
   desc: string;
+
+  @IsOptional()
+  @IsString()
+  image: string;
 }

@@ -11,6 +11,18 @@ model Order {
     lat Float?
     lon Float?
 
+    // Text delivery address
+    address       String?  @db.Text
+
+    // Payment
+    payment_type  String?  @db.VarChar(20)
+
+    // Promo code
+    promo_code_id    Int?
+    promo_code       PromoCode? @relation(fields: [promo_code_id], references: [id])
+    discount_percent Int?   // e.g. 20 (means 20%)
+    discount_amount  Int?   // Actual discount in currency
+
     amount        Int?
     delivery_type DELIVERY_TYPE? @default(MARKET)
     desc String?

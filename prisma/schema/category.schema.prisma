@@ -1,6 +1,8 @@
 model Category {
-  id    Int     @default(autoincrement()) @id
-  name  String?
+  id      Int     @default(autoincrement()) @id
+  name    String?
+  name_uz String?
+  name_ru String?
 
   desc  String?
   image  String?
