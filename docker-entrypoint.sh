@@ -14,4 +14,4 @@ echo "[entrypoint] Running Prisma migrate deploy ..."
 npx prisma migrate deploy
 
 echo "[entrypoint] Starting NestJS application ..."
-exec node dist/main
+exec node dist/src/main
