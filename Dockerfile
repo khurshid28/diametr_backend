@@ -60,16 +60,12 @@ COPY --from=builder /app/public        ./public
 COPY package*.json ./
 
 # ── Telegram bot runtime environment ─────────────────────────────────
-# TELEGRAM_BOT_TOKEN  — BotFather dan olingan token
-# TELEGRAM_CHAT_ID    — bildirishnomalar yuboriladigan asosiy chat ID
-# TELEGRAM_ADMIN_IDS  — /stats,/orders buyruqlari uchun admin ID lar
-#                       (vergul bilan ajratilgan: 123456789,987654321)
-# BACKEND_URL         — webhook manzili (masalan: https://api.diametr.uz)
+# TELEGRAM_BOT_TOKEN — BotFather dan olingan token
+# TELEGRAM_CHAT_IDS  — bildirishnoma VA command huquqi bor chat IDlar
+#                      (vergul bilan ajratilgan: 123456789,-100987654321)
 # (haqiqiy qiymatlar docker-compose.yml yoki .env orqali beriladi)
 ENV TELEGRAM_BOT_TOKEN="8127545738:AAEE8rAMf1kmWDKzFLVJ_Ohj-BWQJb754tI" \
-    TELEGRAM_CHAT_ID="" \
-    TELEGRAM_ADMIN_IDS="" \
-    BACKEND_URL=""
+    TELEGRAM_CHAT_IDS="2053690211,536509231"
 
 # Startup script:
 #   1. waits for MySQL to accept connections
