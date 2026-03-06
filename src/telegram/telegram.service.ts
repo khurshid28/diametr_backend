@@ -89,8 +89,9 @@ export class TelegramService implements OnModuleInit {
         if (!msg?.text) continue;
         // Only registered admins
         if (!this.chatIds.includes(msg.chat.id)) continue;
-        const cmd = msg.text.split('@')[0].trim().toLowerCase();
-        await this.handleCommand(cmd, msg.chat.id, msg.text.split(' ')[1]);
+        const parts = msg.text.trim().split(/\s+/);
+        const cmd = parts[0].split('@')[0].toLowerCase();
+        await this.handleCommand(cmd, msg.chat.id, parts[1]);
       }
     } catch { /* network hiccup — silent */ }
   }
