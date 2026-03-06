@@ -63,9 +63,11 @@ COPY package*.json ./
 # TELEGRAM_BOT_TOKEN — BotFather dan olingan token
 # TELEGRAM_CHAT_IDS  — bildirishnoma VA command huquqi bor chat IDlar
 #                      (vergul bilan ajratilgan: 123456789,-100987654321)
+# BACKEND_URL        — webhook manzili (https://api.diametr.uz)
 # (haqiqiy qiymatlar docker-compose.yml yoki .env orqali beriladi)
 ENV TELEGRAM_BOT_TOKEN="8127545738:AAEE8rAMf1kmWDKzFLVJ_Ohj-BWQJb754tI" \
-    TELEGRAM_CHAT_IDS="2053690211,536509231"
+    TELEGRAM_CHAT_IDS="2053690211,536509231" \
+    BACKEND_URL="https://api.diametr.uz"
 
 # Startup script:
 #   1. waits for MySQL to accept connections

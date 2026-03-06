@@ -1,6 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import axios from 'axios';
-import * as ExcelJS from 'exceljs';
 import { PrismaClientService } from 'src/_prisma_client/prisma_client.service';
 
 // ─── UZT helpers (+5) ─────────────────────────────────────────────────────────
@@ -53,7 +52,6 @@ export class TelegramService implements OnModuleInit {
     .split(',')
     .map((s) => parseInt(s.trim(), 10))
     .filter((n) => !isNaN(n));
-  private lastUpdateId = 0;
   private lastDailySummaryDate = '';
 
   constructor(private readonly prisma: PrismaClientService) {}
@@ -67,33 +65,28 @@ export class TelegramService implements OnModuleInit {
       return;
     }
     this.logger.log(`Telegram bot ishga tushdi ✅ | Adminlar: ${this.chatIds.join(', ')}`);
-    // Register commands with BotFather
     await this.registerCommands();
-    // Long-polling: getUpdates every 3 sec (no server/webhook needed)
-    setInterval(() => this.pollUpdates(), 3_000);
-    // Check every minute for daily summary
+    // Webhook — faqat bitta endpoint, replika soni muhim emas
+    const backendUrl = process.env.BACKEND_URL?.replace(/\/$/, '');
+    if (backendUrl) {
+      await this.setWebhook(`${backendUrl}/telegram/webhook`);
+    } else {
+      this.logger.warn('BACKEND_URL topilmadi — webhook o\'rnatilmadi');
+    }
     setInterval(() => this.checkDailySummary(), 60_000);
   }
 
-  // ─── Long polling ─────────────────────────────────────────────────
-  private async pollUpdates() {
+  private async setWebhook(url: string) {
     try {
-      const res = await axios.get(
-        `https://api.telegram.org/bot${this.token}/getUpdates`,
-        { params: { offset: this.lastUpdateId + 1, timeout: 2 }, timeout: 5_000 },
+      await axios.post(
+        `https://api.telegram.org/bot${this.token}/setWebhook`,
+        { url, drop_pending_updates: true },
+        { timeout: 8000 },
       );
-      const updates: any[] = res.data?.result ?? [];
-      for (const u of updates) {
-        this.lastUpdateId = u.update_id;
-        const msg = u.message;
-        if (!msg?.text) continue;
-        // Only registered admins
-        if (!this.chatIds.includes(msg.chat.id)) continue;
-        const parts = msg.text.trim().split(/\s+/);
-        const cmd = parts[0].split('@')[0].toLowerCase();
-        await this.handleCommand(cmd, msg.chat.id, parts[1]);
-      }
-    } catch { /* network hiccup — silent */ }
+      this.logger.log(`Webhook set: ${url} ✅`);
+    } catch (e: any) {
+      this.logger.error(`setWebhook error: ${e?.message}`);
+    }
   }
 
   private async registerCommands() {
@@ -109,7 +102,7 @@ export class TelegramService implements OnModuleInit {
     }
   }
 
-  // ─── handleUpdate (webhook fallback — still works if someone sets webhook) ──
+  // ─── handleUpdate ─────────────────────────────────────────────────
   async handleUpdate(update: any) {
     try {
       const message = update?.message ?? update?.edited_message;
