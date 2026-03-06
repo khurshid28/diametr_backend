@@ -8,12 +8,14 @@ import { PrismaClientService } from 'src/_prisma_client/prisma_client.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { ORDER_STATUS } from '@prisma/client';
 import { PromoCodeService } from 'src/promo-code/promo-code.service';
+import { TelegramService } from 'src/telegram/telegram.service';
 
 @Injectable()
 export class OrderService {
   constructor(
     private readonly prisma: PrismaClientService,
     private readonly promoCodeService: PromoCodeService,
+    private readonly telegram: TelegramService,
   ) {}
   private logger = new Logger('Order service');
   async create(data: CreateOrderDto, userId?: number) {
@@ -109,7 +111,7 @@ export class OrderService {
       return order;
     });
 
-    return await this.prisma.order.findUnique({
+    const fullOrder = await this.prisma.order.findUnique({
       where: { id: order.id },
       include: {
         shop: true,
@@ -129,6 +131,9 @@ export class OrderService {
         },
       },
     });
+
+    this.telegram.notifyNewOrder(fullOrder).catch(() => {});
+    return fullOrder;
   }
 
   async findAll() {
@@ -275,7 +280,7 @@ export class OrderService {
         }),
       );
 
-      return await tx.order.update({
+      const updated = await tx.order.update({
         where: {
           id: order.id,
         },
@@ -283,6 +288,8 @@ export class OrderService {
           status: ORDER_STATUS.FINISHED,
         },
       });
+      this.telegram.notifyOrderFinished(order.id).catch(() => {});
+      return updated;
     });
   }
   async confirm(id: number) {
@@ -302,7 +309,7 @@ export class OrderService {
     } else if (order.status == 'CONFIRMED') {
       throw new BadRequestException('order is already confirmed');
     }
-    return await this.prisma.order.update({
+    const updated = await this.prisma.order.update({
       where: {
         id: order.id,
       },
@@ -310,6 +317,8 @@ export class OrderService {
         status: ORDER_STATUS.CONFIRMED,
       },
     });
+    this.telegram.notifyOrderConfirmed(order.id).catch(() => {});
+    return updated;
   }
   async cancel(id: number) {
     this.logger.log('confirm');
@@ -324,7 +333,7 @@ export class OrderService {
     if (order.status == 'CANCELED') {
       throw new BadRequestException('order is already canceled');
     }
-    return await this.prisma.order.update({
+    const updated = await this.prisma.order.update({
       where: {
         id: order.id,
       },
@@ -332,5 +341,7 @@ export class OrderService {
         status: ORDER_STATUS.CANCELED,
       },
     });
+    this.telegram.notifyOrderCanceled(order.id).catch(() => {});
+    return updated;
   }
 }

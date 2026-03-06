@@ -23,7 +23,7 @@ import { ShopProductModule } from './shop-product/shop-product.module';
 import { ProductItemModule } from './product-item/product-item.module';
 import { AxiosClientModule } from './_axios_client/axios_client.module';
 import { PromoCodeModule } from './promo-code/promo-code.module';
-
+import { TelegramModule } from './telegram/telegram.module';
 
 @Module({
   imports: [
@@ -56,7 +56,7 @@ import { PromoCodeModule } from './promo-code/promo-code.module';
     ProductItemModule,
     AxiosClientModule,
     PromoCodeModule,
-
+    TelegramModule,
   ],
   controllers: [AppController],
   providers: [AppService,  ],
