@@ -66,7 +66,7 @@ COPY package*.json ./
 #                       (vergul bilan ajratilgan: 123456789,987654321)
 # BACKEND_URL         — webhook manzili (masalan: https://api.diametr.uz)
 # (haqiqiy qiymatlar docker-compose.yml yoki .env orqali beriladi)
-ENV TELEGRAM_BOT_TOKEN="" \
+ENV TELEGRAM_BOT_TOKEN="8127545738:AAEE8rAMf1kmWDKzFLVJ_Ohj-BWQJb754tI" \
     TELEGRAM_CHAT_ID="" \
     TELEGRAM_ADMIN_IDS="" \
     BACKEND_URL=""
