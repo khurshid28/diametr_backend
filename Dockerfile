@@ -58,6 +58,8 @@ COPY --from=builder /app/node_modules  ./node_modules
 COPY --from=builder /app/prisma        ./prisma
 COPY --from=builder /app/public        ./public
 COPY package*.json ./
+# tsconfig needed so ts-node can run seed scripts inside the container
+COPY tsconfig.json tsconfig.build.json ./
 
 # ── Telegram bot runtime environment ─────────────────────────────────
 # TELEGRAM_BOT_TOKEN — BotFather dan olingan token
