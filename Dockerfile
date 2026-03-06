@@ -21,7 +21,8 @@ RUN apk add --no-cache \
 
 # Install node_modules first (better layer cache — only re-runs when package*.json changes)
 COPY package*.json ./
-RUN npm ci --ignore-scripts --legacy-peer-deps
+RUN npm ci --ignore-scripts --legacy-peer-deps \
+ && npm install exceljs --legacy-peer-deps --no-save
 
 # Copy source, generate Prisma client (prismaSchemaFolder), build
 COPY . .
@@ -57,6 +58,18 @@ COPY --from=builder /app/node_modules  ./node_modules
 COPY --from=builder /app/prisma        ./prisma
 COPY --from=builder /app/public        ./public
 COPY package*.json ./
+
+# ── Telegram bot runtime environment ─────────────────────────────────
+# TELEGRAM_BOT_TOKEN  — BotFather dan olingan token
+# TELEGRAM_CHAT_ID    — bildirishnomalar yuboriladigan asosiy chat ID
+# TELEGRAM_ADMIN_IDS  — /stats,/orders buyruqlari uchun admin ID lar
+#                       (vergul bilan ajratilgan: 123456789,987654321)
+# BACKEND_URL         — webhook manzili (masalan: https://api.diametr.uz)
+# (haqiqiy qiymatlar docker-compose.yml yoki .env orqali beriladi)
+ENV TELEGRAM_BOT_TOKEN="" \
+    TELEGRAM_CHAT_ID="" \
+    TELEGRAM_ADMIN_IDS="" \
+    BACKEND_URL=""
 
 # Startup script:
 #   1. waits for MySQL to accept connections
