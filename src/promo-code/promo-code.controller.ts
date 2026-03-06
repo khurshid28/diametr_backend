@@ -23,16 +23,16 @@ export class PromoCodeController {
 
   /** Admin: create a new promo code */
   @Post()
-  @UseGuards(RolesGuardFactory([Role.ADMIN]))
-  @ApiOperation({ summary: 'Promo kod yaratish (ADMIN)' })
+  @UseGuards(RolesGuardFactory([Role.ADMIN, Role.SUPER]))
+  @ApiOperation({ summary: 'Promo kod yaratish (ADMIN/SUPER)' })
   create(@Body() dto: CreatePromoCodeDto) {
     return this.promoCodeService.create(dto);
   }
 
   /** Admin: list all promo codes */
   @Get('/all')
-  @UseGuards(RolesGuardFactory([Role.ADMIN]))
-  @ApiOperation({ summary: 'Barcha promo kodlar (ADMIN)' })
+  @UseGuards(RolesGuardFactory([Role.ADMIN, Role.SUPER]))
+  @ApiOperation({ summary: 'Barcha promo kodlar (ADMIN/SUPER)' })
   findAll() {
     return this.promoCodeService.findAll();
   }
@@ -48,8 +48,8 @@ export class PromoCodeController {
 
   /** Admin: toggle active/inactive */
   @Patch('/toggle/:id')
-  @UseGuards(RolesGuardFactory([Role.ADMIN]))
-  @ApiOperation({ summary: 'Promo kodni yoqish/o’chirish (ADMIN)' })
+  @UseGuards(RolesGuardFactory([Role.ADMIN, Role.SUPER]))
+  @ApiOperation({ summary: 'Promo kodni yoqish/o\'chirish (ADMIN/SUPER)' })
   @ApiParam({ name: 'id', type: Number })
   toggle(@Param('id') id: string) {
     return this.promoCodeService.toggle(+id);
@@ -57,8 +57,8 @@ export class PromoCodeController {
 
   /** Admin: delete */
   @Delete('/:id')
-  @UseGuards(RolesGuardFactory([Role.ADMIN]))
-  @ApiOperation({ summary: 'Promo kodni o’chirish (ADMIN)' })
+  @UseGuards(RolesGuardFactory([Role.ADMIN, Role.SUPER]))
+  @ApiOperation({ summary: 'Promo kodni o\'chirish (ADMIN/SUPER)' })
   @ApiParam({ name: 'id', type: Number })
   remove(@Param('id') id: string) {
     return this.promoCodeService.remove(+id);

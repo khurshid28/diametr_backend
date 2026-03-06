@@ -57,9 +57,9 @@ export class OrderController {
   }
 
   @Put('/finish/:id')
-  @UseGuards(RolesGuardFactory([Role.ADMIN]))
+  @UseGuards(RolesGuardFactory([Role.ADMIN, Role.SUPER]))
   @ApiBearerAuth('JWT')
-  @ApiOperation({ summary: 'Buyurtmani yakunlash (ADMIN)' })
+  @ApiOperation({ summary: 'Buyurtmani yakunlash (ADMIN/SUPER)' })
   @ApiParam({ name: 'id', type: Number })
   finish(@Param('id') id: string) {
     return this.orderService.finish(+id);
@@ -75,9 +75,9 @@ export class OrderController {
   }
 
   @Put('/cancel/:id')
-  @UseGuards(RolesGuardFactory([Role.ADMIN]))
+  @UseGuards(RolesGuardFactory([Role.ADMIN, Role.SUPER]))
   @ApiBearerAuth('JWT')
-  @ApiOperation({ summary: 'Buyurtmani bekor qilish (ADMIN)' })
+  @ApiOperation({ summary: 'Buyurtmani bekor qilish (ADMIN/SUPER)' })
   @ApiParam({ name: 'id', type: Number })
   cancel(@Param('id') id: string) {
     return this.orderService.cancel(+id);

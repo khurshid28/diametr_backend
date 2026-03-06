@@ -22,9 +22,9 @@ export class ShopProductController {
   constructor(private readonly shopProductService: ShopProductService) {}
 
   @Post()
-  @UseGuards(RolesGuardFactory([Role.ADMIN]))
+  @UseGuards(RolesGuardFactory([Role.ADMIN, Role.SUPER]))
   @ApiBearerAuth('JWT')
-  @ApiOperation({ summary: 'Do’konga mahsulot qo’shish (ADMIN)' })
+  @ApiOperation({ summary: 'Do\'konga mahsulot qo\'shish (ADMIN/SUPER)' })
   create(@Body() data: CreateShopProductDto, @Req() req) {
     return this.shopProductService.create(data, req);
   }

@@ -1,8 +1,15 @@
-import { Controller, Get, Post, Body, Param, Delete, Put } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Param, Delete, Put, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { ApiBody, ApiConsumes, ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname, join } from 'path';
+import { writeFileSync } from 'fs';
+import axios from 'axios';
 import { ShopService } from './shop.service';
 import { CreateShopDto } from './dto/create-shop.dto';
 import { UpdateShopDto } from './dto/update-shop.dto';
+import { Role } from '@prisma/client';
+import { RolesGuardFactory } from 'src/_guard/roles.guard';
 
 @ApiTags('Shop')
 @Controller('shop')
@@ -10,9 +17,53 @@ export class ShopController {
   constructor(private readonly shopService: ShopService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Do’kon yaratish' })
+  @UseGuards(RolesGuardFactory([Role.ADMIN, Role.SUPER]))
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: "Do'kon yaratish (ADMIN/SUPER)" })
   create(@Body() data: CreateShopDto) {
     return this.shopService.create(data);
+  }
+
+  @Post('/upload-image')
+  @UseGuards(RolesGuardFactory([Role.ADMIN, Role.SUPER]))
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: "Do'kon rasmi yuklash (ADMIN/SUPER)" })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { image: { type: 'string', format: 'binary' } },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: diskStorage({
+        destination: join(process.cwd(), 'public', 'shops'),
+        filename: (_req, file, cb) => {
+          const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          cb(null, unique + extname(file.originalname));
+        },
+      }),
+      fileFilter: (_req, file, cb) => {
+        const allowed = /\.(jpg|jpeg|png|webp|gif|svg|bmp)$/i;
+        cb(null, allowed.test(file.originalname));
+      },
+    }),
+  )
+  uploadImage(@UploadedFile() file: Express.Multer.File) {
+    return { image: file.filename };
+  }
+
+  @Post('/upload-image-url')
+  @UseGuards(RolesGuardFactory([Role.ADMIN, Role.SUPER]))
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: "URL dan rasm yuklab saqlab qo'yish (ADMIN/SUPER)" })
+  @ApiBody({ schema: { type: 'object', properties: { url: { type: 'string' } } } })
+  async uploadImageFromUrl(@Body() body: { url: string }) {
+    const response = await axios.get(body.url, { responseType: 'arraybuffer' });
+    const filename = Date.now() + '-' + Math.round(Math.random() * 1e9) + '.jpg';
+    writeFileSync(join(process.cwd(), 'public', 'shops', filename), Buffer.from(response.data));
+    return { image: filename };
   }
 
   @Get('/all')
@@ -29,14 +80,18 @@ export class ShopController {
   }
 
   @Put(':id')
-  @ApiOperation({ summary: 'Do’konni tahrirlash' })
+  @UseGuards(RolesGuardFactory([Role.ADMIN, Role.SUPER]))
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: "Do'konni tahrirlash (ADMIN/SUPER)" })
   @ApiParam({ name: 'id', type: Number })
   update(@Param('id') id: string, @Body() data: UpdateShopDto) {
     return this.shopService.update(+id, data);
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Do’konni o’chirish' })
+  @UseGuards(RolesGuardFactory([Role.ADMIN, Role.SUPER]))
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: "Do'konni o'chirish (ADMIN/SUPER)" })
   @ApiParam({ name: 'id', type: Number })
   remove(@Param('id') id: string) {
     return this.shopService.remove(+id);

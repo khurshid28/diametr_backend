@@ -1,8 +1,10 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Put } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Put, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
+import { Role } from '@prisma/client';
+import { RolesGuardFactory } from 'src/_guard/roles.guard';
 
 @ApiTags('Admin')
 @ApiBearerAuth('JWT')
@@ -11,33 +13,38 @@ export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Admin yaratish' })
+  @UseGuards(RolesGuardFactory([Role.SUPER]))
+  @ApiOperation({ summary: 'Admin yaratish (SUPER)' })
   create(@Body() createAdminDto: CreateAdminDto) {
     return this.adminService.create(createAdminDto);
   }
 
   @Get('/all')
-  @ApiOperation({ summary: 'Barcha adminlar ro’yxati' })
+  @UseGuards(RolesGuardFactory([Role.SUPER]))
+  @ApiOperation({ summary: "Barcha adminlar ro'yxati (SUPER)" })
   findAll() {
     return this.adminService.findAll();
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Bitta admin' })
+  @UseGuards(RolesGuardFactory([Role.SUPER]))
+  @ApiOperation({ summary: 'Bitta admin (SUPER)' })
   @ApiParam({ name: 'id', type: Number })
   findOne(@Param('id') id: string) {
     return this.adminService.findOne(+id);
   }
 
   @Put(':id')
-  @ApiOperation({ summary: 'Adminni tahrirlash' })
+  @UseGuards(RolesGuardFactory([Role.SUPER]))
+  @ApiOperation({ summary: 'Adminni tahrirlash (SUPER)' })
   @ApiParam({ name: 'id', type: Number })
   update(@Param('id') id: string, @Body() updateAdminDto: UpdateAdminDto) {
     return this.adminService.update(+id, updateAdminDto);
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Adminni o’chirish' })
+  @UseGuards(RolesGuardFactory([Role.SUPER]))
+  @ApiOperation({ summary: "Adminni o'chirish (SUPER)" })
   @ApiParam({ name: 'id', type: Number })
   remove(@Param('id') id: string) {
     return this.adminService.remove(+id);

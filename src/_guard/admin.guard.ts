@@ -34,8 +34,12 @@ export class AdminGuard implements CanActivate {
     let where = { id: payload.user_id };
     let user: any;
     
-     if (payload.role == Role.ADMIN) {
+    if (payload.role == Role.ADMIN) {
       user = await this.prismaService.admin.findUnique({
+        where,
+      });
+    } else if (payload.role == Role.SUPER) {
+      user = await this.prismaService.super.findUnique({
         where,
       });
     }
