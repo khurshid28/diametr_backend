@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import { PromoCodeService } from './promo-code.service';
-import { CreatePromoCodeDto } from './dto/create-promo-code.dto';
+import { CreatePromoCodeDto, UpdatePromoCodeDto } from './dto/create-promo-code.dto';
 import { Role } from '@prisma/client';
 import { RolesGuardFactory } from 'src/_guard/roles.guard';
 
@@ -46,6 +46,15 @@ export class PromoCodeController {
     return this.promoCodeService.validate(code.toUpperCase(), req['user'].id);
   }
 
+  /** Admin: update promo code fields */
+  @Patch('/:id')
+  @UseGuards(RolesGuardFactory([Role.ADMIN, Role.SUPER]))
+  @ApiOperation({ summary: 'Promo kodni tahrirlash (ADMIN/SUPER)' })
+  @ApiParam({ name: 'id', type: Number })
+  update(@Param('id') id: string, @Body() dto: UpdatePromoCodeDto) {
+    return this.promoCodeService.update(+id, dto);
+  }
+
   /** Admin: toggle active/inactive */
   @Patch('/toggle/:id')
   @UseGuards(RolesGuardFactory([Role.ADMIN, Role.SUPER]))
@@ -64,3 +73,4 @@ export class PromoCodeController {
     return this.promoCodeService.remove(+id);
   }
 }
+

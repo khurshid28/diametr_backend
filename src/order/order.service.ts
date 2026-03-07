@@ -38,8 +38,13 @@ export class OrderService {
         userId,
       );
       promoCodeId = promo.id;
-      discountPercent = promo.discount;
-      discountAmount = Math.round((data.amount * promo.discount) / 100);
+      if (promo.discount_type === 'PERCENT') {
+        discountPercent = promo.discount_value;
+        discountAmount = Math.round((data.amount * promo.discount_value) / 100);
+      } else {
+        discountPercent = null;
+        discountAmount = Math.round(promo.discount_value);
+      }
     }
 
     const finalAmount =

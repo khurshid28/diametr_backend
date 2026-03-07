@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaClientService } from 'src/_prisma_client/prisma_client.service';
-import { CreatePromoCodeDto } from './dto/create-promo-code.dto';
+import { CreatePromoCodeDto, UpdatePromoCodeDto } from './dto/create-promo-code.dto';
 
 @Injectable()
 export class PromoCodeService {
@@ -17,18 +17,45 @@ export class PromoCodeService {
     return this.prisma.promoCode.create({
       data: {
         code: data.code,
-        discount: data.discount,
+        discount_type: data.discount_type,
+        discount_value: data.discount_value,
+        min_order_amount: data.min_order_amount ?? null,
+        max_uses: data.max_uses ?? null,
         expires_at: data.expires_at ? new Date(data.expires_at) : null,
+      },
+    });
+  }
+
+  async update(id: number, data: UpdatePromoCodeDto) {
+    this.logger.log('update');
+    const promo = await this.prisma.promoCode.findUnique({ where: { id } });
+    if (!promo) throw new NotFoundException('Promo code not found');
+    return this.prisma.promoCode.update({
+      where: { id },
+      data: {
+        ...(data.code !== undefined && { code: data.code }),
+        ...(data.discount_type !== undefined && { discount_type: data.discount_type }),
+        ...(data.discount_value !== undefined && { discount_value: data.discount_value }),
+        ...(data.min_order_amount !== undefined && { min_order_amount: data.min_order_amount }),
+        ...(data.max_uses !== undefined && { max_uses: data.max_uses }),
+        ...(data.expires_at !== undefined && { expires_at: data.expires_at ? new Date(data.expires_at) : null }),
+        ...(data.is_active !== undefined && { is_active: data.is_active }),
       },
     });
   }
 
   async findAll() {
     this.logger.log('findAll');
-    return this.prisma.promoCode.findMany({
+    const items = await this.prisma.promoCode.findMany({
       include: { _count: { select: { uses: true } } },
       orderBy: { id: 'desc' },
     });
+    return items.map(({ _count, ...item }) => ({
+      ...item,
+      used_count: _count.uses,
+      discount_value: Number(item.discount_value),
+      min_order_amount: item.min_order_amount ? Number(item.min_order_amount) : null,
+    }));
   }
 
   async remove(id: number) {
@@ -80,6 +107,19 @@ export class PromoCodeService {
       );
     }
 
-    return { id: promo.id, code: promo.code, discount: promo.discount };
+    if (promo.max_uses !== null) {
+      const totalUses = await this.prisma.promoCodeUse.count({ where: { promo_code_id: promo.id } });
+      if (totalUses >= promo.max_uses) {
+        throw new BadRequestException('Promokod foydalanish limiti tugagan');
+      }
+    }
+
+    return {
+      id: promo.id,
+      code: promo.code,
+      discount_type: promo.discount_type,
+      discount_value: Number(promo.discount_value),
+      min_order_amount: promo.min_order_amount ? Number(promo.min_order_amount) : null,
+    };
   }
 }

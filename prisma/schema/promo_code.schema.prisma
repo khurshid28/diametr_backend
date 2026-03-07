@@ -1,9 +1,12 @@
 model PromoCode {
-    id         Int            @id @default(autoincrement())
-    code       String         @unique @db.VarChar(50)
-    discount   Int            // Discount percentage: 15, 20, 25, 30, 40, 50
-    is_active  Boolean        @default(true)
-    expires_at DateTime?      // null = never expires
+    id                Int            @id @default(autoincrement())
+    code              String         @unique @db.VarChar(50)
+    discount_type     DISCOUNT_TYPE  @default(PERCENT)
+    discount_value    Decimal        @db.Decimal(10, 2)
+    min_order_amount  Decimal?       @db.Decimal(10, 2)
+    max_uses          Int?
+    is_active         Boolean        @default(true)
+    expires_at        DateTime?      // null = never expires
 
     uses       PromoCodeUse[]
     orders     Order[]

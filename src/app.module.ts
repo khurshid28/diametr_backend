@@ -32,8 +32,8 @@ import { TelegramModule } from './telegram/telegram.module';
     }),
     JwtModule.register({
       global: true,
-      secret: process.env.JWT_SECRET,
-      signOptions: { expiresIn: process.env.JWT_EXPIRES },
+      secret: process.env.JWT_SECRET ?? 'default_secret',
+      signOptions: { expiresIn: process.env.JWT_EXPIRES ?? '30d' },
     }),
    
 

@@ -59,3 +59,8 @@ enum PAYMENT_TYPE {
    WORKER 
    AD
 }
+
+enum DISCOUNT_TYPE {
+   PERCENT
+   FIXED
+}
