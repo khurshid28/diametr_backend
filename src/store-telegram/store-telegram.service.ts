@@ -53,6 +53,8 @@ export class StoreTelegramService implements OnModuleInit {
   private readonly storeUrl = 'https://diametr.uz/store';
   private readonly ORDERS_PER_PAGE = 3;
   private readonly SEARCH_PER_PAGE = 3;
+  private readonly ITEMS_PER_PHOTO_PAGE = 4;
+  private readonly IMG_BASE = 'https://diametr.uz';
 
   constructor(
     private readonly prisma: PrismaClientService,
@@ -411,15 +413,176 @@ export class StoreTelegramService implements OnModuleInit {
   // ─── /search ───────────────────────────────────────────────────────────────
 
   private async cmdSearchHint(chatId: string) {
+    await this.cmdShowCategories(chatId, 0);
+  }
+
+  // ─── Category catalog browser ──────────────────────────────────────────────
+
+  private async cmdShowCategories(chatId: string, page: number) {
     const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
     const lang = user?.lang ?? 'uz';
-    const text = lang === 'ru' ? '🔍 <b>Что хотите найти?</b>' : '🔍 <b>Nima qidirmoqchisiz?</b>';
-    await this.sendMessage(chatId, text, {
-      inline_keyboard: [[
-        { text: `🏪 ${lang === 'ru' ? 'Магазин' : "Do'kon"}`, callback_data: 'search_shop' },
-        { text: `📦 ${lang === 'ru' ? 'Товар' : 'Tovar'}`,    callback_data: 'search_prod' },
-      ]],
+
+    const cats = await this.prisma.category.findMany({
+      where: {
+        work_status: 'WORKING',
+        products: {
+          some: {
+            items: {
+              some: {
+                work_status: 'WORKING',
+                shop_products: { some: { work_status: 'WORKING', count: { gt: 0 } } },
+              },
+            },
+          },
+        },
+      },
+      select: {
+        id: true, name: true, name_uz: true, name_ru: true, image: true,
+        _count: { select: { products: { where: { work_status: 'WORKING' } } } },
+      },
+      orderBy: { name: 'asc' },
     });
+
+    if (cats.length === 0) {
+      return this.reply(chatId, lang === 'ru' ? '📂 Категории не найдены.' : '📂 Kategoriyalar topilmadi.');
+    }
+
+    const PER = this.ITEMS_PER_PHOTO_PAGE;
+    const total = cats.length;
+    const totalPages = Math.ceil(total / PER);
+    const safePage = Math.max(0, Math.min(page, totalPages - 1));
+    const slice = cats.slice(safePage * PER, (safePage + 1) * PER);
+
+    for (const cat of slice) {
+      const catName = (lang === 'ru' ? (cat.name_ru ?? cat.name) : (cat.name_uz ?? cat.name)) ?? '—';
+      const cnt = cat._count?.products ?? 0;
+      const caption =
+        `🗂 <b>${catName}</b>\n` +
+        `📦 ${cnt} ${lang === 'ru' ? 'товаров' : 'ta tovar'}`;
+      const btn = { inline_keyboard: [[
+        { text: `🛍 ${catName}`, callback_data: `catsel:${cat.id}:0` },
+      ]] };
+      const photo = this.imgUrl(cat.image);
+      if (photo) {
+        await this.sendTgPhoto(chatId, photo, caption, btn);
+      } else {
+        await this.sendMessage(chatId, caption, btn);
+      }
+    }
+
+    // Pagination + search/shop buttons
+    const pageRow = this.buildPageRow(totalPages, safePage, (p) => `cat:${p}`);
+    const keyboard: any[][] = [];
+    if (pageRow.length) keyboard.push(pageRow);
+    keyboard.push([
+      { text: lang === 'ru' ? '🔍 Поиск по названию' : "🔍 Nom bo'yicha qidirish", callback_data: 'search_prod' },
+      { text: lang === 'ru' ? '🏪 Магазин' : "🏪 Do'kon", callback_data: 'search_shop' },
+    ]);
+    const pageInfo = lang === 'ru'
+      ? `📂 <b>Каталог</b>  ·  стр. ${safePage + 1} / ${totalPages}`
+      : `📂 <b>Katalog</b>  ·  ${safePage + 1} / ${totalPages} sahifa`;
+    await this.sendMessage(chatId, pageInfo, { inline_keyboard: keyboard });
+  }
+
+  // ─── Product items in a category (photo cards) ─────────────────────────────
+
+  private async cmdShowCategoryItems(chatId: string, catId: number, page: number) {
+    const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
+    const lang = user?.lang ?? 'uz';
+
+    const [cat, items] = await Promise.all([
+      this.prisma.category.findUnique({
+        where: { id: catId },
+        select: { name: true, name_uz: true, name_ru: true },
+      }),
+      this.prisma.productItem.findMany({
+        where: {
+          work_status: 'WORKING',
+          shop_products: { some: { work_status: 'WORKING', count: { gt: 0 } } },
+          product: { category_id: catId },
+        },
+        select: {
+          id: true, name: true, image: true,
+          product: {
+            select: {
+              name: true, name_uz: true, name_ru: true, image: true,
+              category: { select: { name: true, name_uz: true, name_ru: true } },
+            },
+          },
+          _count: { select: { shop_products: { where: { work_status: 'WORKING', count: { gt: 0 } } } } },
+        },
+        take: 200,
+      }),
+    ]);
+
+    if (items.length === 0) {
+      return this.reply(chatId, lang === 'ru' ? '📦 В этой категории нет товаров.' : "📦 Bu kategoriyada tovar yo'q.");
+    }
+
+    const catName = (lang === 'ru' ? (cat?.name_ru ?? cat?.name) : (cat?.name_uz ?? cat?.name)) ?? '—';
+    const header = lang === 'ru'
+      ? `🗂 <b>${catName}</b>  ·  ${items.length} шт.`
+      : `🗂 <b>${catName}</b>  ·  ${items.length} ta`;
+    await this.sendProductItemPhotos(chatId, items, lang, page, { cat_id: catId }, header);
+  }
+
+  // ─── Send product items as individual photo cards ──────────────────────────
+
+  private async sendProductItemPhotos(
+    chatId: string,
+    items: any[],
+    lang: string,
+    page: number,
+    ctx: { prod_q?: string; cat_id?: number },
+    headerLine: string,
+  ) {
+    const PER = this.ITEMS_PER_PHOTO_PAGE;
+    const total = items.length;
+    const totalPages = Math.ceil(total / PER);
+    const safePage = Math.max(0, Math.min(page, totalPages - 1));
+    const slice = items.slice(safePage * PER, (safePage + 1) * PER);
+
+    for (const pi of slice) {
+      const pname = (lang === 'ru'
+        ? (pi.product?.name_ru ?? pi.product?.name ?? pi.name)
+        : (pi.product?.name_uz ?? pi.product?.name ?? pi.name)) ?? '—';
+      const variant = pi.name && pi.name !== pname ? `  ·  <i>${pi.name}</i>` : '';
+      const catLabel = lang === 'ru'
+        ? (pi.product?.category?.name_ru ?? pi.product?.category?.name ?? '')
+        : (pi.product?.category?.name_uz ?? pi.product?.category?.name ?? '');
+      const shopCount = pi._count?.shop_products ?? 0;
+      const shopLabel = lang === 'ru'
+        ? `${shopCount} ${shopCount === 1 ? 'магазин' : shopCount < 5 ? 'магазина' : 'магазинов'}`
+        : `${shopCount} ta do'konda`;
+      const caption = [
+        `📦 <b>${pname}${variant}</b>`,
+        catLabel ? `🗂 ${catLabel}` : null,
+        `🏪 ${shopLabel}`,
+      ].filter(Boolean).join('\n');
+      const btn = { inline_keyboard: [[
+        { text: `🏪 ${shopLabel}  ·  ko'rish`, callback_data: `pshops:${pi.id}` },
+      ]] };
+      const photo = this.imgUrl(pi.image ?? pi.product?.image);
+      if (photo) {
+        await this.sendTgPhoto(chatId, photo, caption, btn);
+      } else {
+        await this.sendMessage(chatId, `🖼 ${caption}`, btn);
+      }
+    }
+
+    // Pagination row
+    const paginationFn = ctx.cat_id != null
+      ? (p: number) => `catsel:${ctx.cat_id}:${p}`
+      : (p: number) => `pr:${p}`;
+    const pageRow = this.buildPageRow(totalPages, safePage, paginationFn);
+    const keyboard: any[][] = [];
+    if (pageRow.length) keyboard.push(pageRow);
+    keyboard.push([{ text: lang === 'ru' ? '◀️ Каталог' : '◀️ Katalog', callback_data: 'cat:0' }]);
+
+    const pageInfo = lang === 'ru'
+      ? `${headerLine}\n📄 стр. ${safePage + 1} / ${totalPages}`
+      : `${headerLine}\n📄 ${safePage + 1} / ${totalPages} sahifa`;
+    await this.sendMessage(chatId, pageInfo, { inline_keyboard: keyboard });
   }
 
   // ─── Shop search ───────────────────────────────────────────────────────────
@@ -516,10 +679,10 @@ export class StoreTelegramService implements OnModuleInit {
     return { text, keyboard };
   }
 
-  // ─── Product search: ProductItem list → shop list with price+distance ─────
+  // ─── Product search: text query → photo cards ─────────────────────────────
 
   private async cmdSearchProducts(chatId: string, query: string, page: number) {
-    const [user, session] = await Promise.all([
+    const [user] = await Promise.all([
       this.prisma.user.findFirst({ where: { chat_id: chatId } }),
       this.upsertSession(chatId, { prod_q: query }),
     ]);
@@ -537,10 +700,12 @@ export class StoreTelegramService implements OnModuleInit {
         ],
       },
       select: {
-        id: true,
-        name: true,
+        id: true, name: true, image: true,
         product: {
-          select: { name: true, name_uz: true, name_ru: true, category: { select: { name: true } } },
+          select: {
+            name: true, name_uz: true, name_ru: true, image: true,
+            category: { select: { name: true, name_uz: true, name_ru: true } },
+          },
         },
         _count: { select: { shop_products: { where: { work_status: 'WORKING', count: { gt: 0 } } } } },
       },
@@ -553,56 +718,10 @@ export class StoreTelegramService implements OnModuleInit {
         : `🔍 <b>Tovar topilmadi</b> «${query}» so'rovi bo'yicha`);
     }
 
-    const { text, keyboard } = this.buildProductItemsPage(all, query, lang, page);
-    await this.sendMessage(chatId, text, { inline_keyboard: keyboard });
-  }
-
-  private buildProductItemsPage(items: any[], query: string, lang: string, page: number) {
-    const total = items.length;
-    const totalPages = Math.ceil(total / this.SEARCH_PER_PAGE);
-    const safePage = Math.max(0, Math.min(page, totalPages - 1));
-    const slice = items.slice(safePage * this.SEARCH_PER_PAGE, (safePage + 1) * this.SEARCH_PER_PAGE);
-    const nums = ['1️⃣', '2️⃣', '3️⃣'];
-    const div = '━━━━━━━━━━━━━━━━━━━━━';
-
     const header = lang === 'ru'
-      ? `🔍 <b>Результаты поиска</b>  ·  «${query}»  ·  ${total} шт.`
-      : `🔍 <b>Qidiruv natijalari</b>  ·  «${query}»  ·  ${total} ta`;
-
-    const lines = slice.map((pi, i) => {
-      const pname = lang === 'ru'
-        ? (pi.product?.name_ru ?? pi.product?.name ?? pi.name ?? '—')
-        : (pi.product?.name_uz ?? pi.product?.name ?? pi.name ?? '—');
-      const variant = pi.name && pi.name !== pname ? `  ·  ${pi.name}` : '';
-      const cat = pi.product?.category?.name ?? (lang === 'ru' ? 'Без категории' : 'Kategoriyasiz');
-      const shopCount = pi._count?.shop_products ?? 0;
-      const shopLabel = lang === 'ru'
-        ? `${shopCount} ${shopCount === 1 ? 'магазин' : shopCount < 5 ? 'магазина' : 'магазинов'}`
-        : `${shopCount} ta do'konda`;
-      return (
-        `${nums[i] ?? `${safePage * this.SEARCH_PER_PAGE + i + 1}.`}  <b>${pname}${variant}</b>\n` +
-        `    🗂 ${cat}   ·   🏪 ${shopLabel}`
-      );
-    });
-
-    const pageInfo = lang === 'ru'
-      ? `📄 ${safePage + 1} / ${totalPages}`
-      : `📄 ${safePage + 1} / ${totalPages}`;
-    const text = `${header}\n${div}\n\n${lines.join('\n\n')}\n\n${div}\n${pageInfo}`;
-
-    const shopBtns = slice.map((pi) => {
-      const pname = lang === 'ru'
-        ? (pi.product?.name_ru ?? pi.product?.name ?? pi.name ?? '—')
-        : (pi.product?.name_uz ?? pi.product?.name ?? pi.name ?? '—');
-      const variant = pi.name && pi.name !== pname ? ` · ${pi.name}` : '';
-      const cnt = pi._count?.shop_products ?? 0;
-      return [{ text: `🏪 ${(pname + variant).substring(0, 28)} (${cnt} ta)`, callback_data: `pshops:${pi.id}` }];
-    });
-
-    const pageRow = this.buildPageRow(totalPages, safePage, (p) => `pr:${p}`);
-    const keyboard: any[][] = [...shopBtns];
-    if (pageRow.length) keyboard.push(pageRow);
-    return { text, keyboard };
+      ? `🔍 Результаты: «${query}»  ·  ${all.length} шт.`
+      : `🔍 Natijalar: «${query}»  ·  ${all.length} ta`;
+    await this.sendProductItemPhotos(chatId, all, lang, page, { prod_q: query }, header);
   }
 
   // ─── Shop list for a product item ─────────────────────────────────────────
@@ -705,7 +824,7 @@ export class StoreTelegramService implements OnModuleInit {
       : { text: `🛒 ${lang === 'ru' ? 'Корзина пуста' : "Savat bo'sh"}`, callback_data: 'view_cart' };
 
     const pageRow  = this.buildPageRow(totalPages, safePage, (p) => `pshops:${piId}:${p}`);
-    const backBtn  = { text: lang === 'ru' ? '◀️ Назад' : '◀️ Orqaga', callback_data: 'pr:0' };
+    const backBtn  = { text: lang === 'ru' ? '◀️ Каталог' : '◀️ Katalog', callback_data: 'cat:0' };
     const keyboard: any[][] = [...addRows, [cartBtn]];
     if (pageRow.length) keyboard.push(pageRow);
     keyboard.push([backBtn]);
@@ -1149,17 +1268,40 @@ export class StoreTelegramService implements OnModuleInit {
             ],
           },
           select: {
-            id: true, name: true,
+            id: true, name: true, image: true,
             product: {
-              select: { name: true, name_uz: true, name_ru: true, category: { select: { name: true } } },
+              select: {
+                name: true, name_uz: true, name_ru: true, image: true,
+                category: { select: { name: true, name_uz: true, name_ru: true } },
+              },
             },
             _count: { select: { shop_products: { where: { work_status: 'WORKING', count: { gt: 0 } } } } },
           },
           take: 100,
         });
-        const { text, keyboard } = this.buildProductItemsPage(all, query, lang, page);
-        await this.editMessage(chatId, messageId, text, { inline_keyboard: keyboard });
+        const header = lang === 'ru'
+          ? `🔍 Результаты: «${query}»  ·  ${all.length} шт.`
+          : `🔍 Natijalar: «${query}»  ·  ${all.length} ta`;
+        await this.sendProductItemPhotos(chatId, all, lang, page, { prod_q: query }, header);
       }
+      await this.answerCallback(callbackQuery.id);
+      return;
+    }
+
+    // ── Category catalog pagination: cat:PAGE ────────────────────────────────
+    if (data.startsWith('cat:')) {
+      const page = parseInt(data.split(':')[1], 10) || 0;
+      await this.cmdShowCategories(chatId, page);
+      await this.answerCallback(callbackQuery.id);
+      return;
+    }
+
+    // ── Category product items: catsel:CAT_ID:PAGE ────────────────────────────
+    if (data.startsWith('catsel:')) {
+      const parts = data.split(':');
+      const catId = parseInt(parts[1], 10);
+      const page  = parseInt(parts[2] ?? '0', 10) || 0;
+      if (catId) await this.cmdShowCategoryItems(chatId, catId, page);
       await this.answerCallback(callbackQuery.id);
       return;
     }
@@ -1450,6 +1592,31 @@ export class StoreTelegramService implements OnModuleInit {
       update: { state: 'idle', sms_id: null, phone: null },
       create: { chat_id: chatId, state: 'idle' },
     });
+  }
+
+  // ─── Image URL helper ──────────────────────────────────────────────────────
+
+  private imgUrl(path: string | null | undefined): string | null {
+    if (!path?.trim()) return null;
+    if (path.startsWith('http')) return path;
+    return `${this.IMG_BASE}/${path}`;
+  }
+
+  /** sendPhoto via Bot API; falls back to sendMessage if photo fails */
+  private async sendTgPhoto(chatId: string, photo: string, caption: string, replyMarkup?: any): Promise<void> {
+    try {
+      await axios.post(
+        `https://api.telegram.org/bot${this.token}/sendPhoto`,
+        { chat_id: chatId, photo, caption, parse_mode: 'HTML', reply_markup: replyMarkup ?? null },
+        { timeout: 15000 },
+      );
+    } catch {
+      if (replyMarkup) {
+        await this.sendMessage(chatId, caption, { inline_keyboard: replyMarkup.inline_keyboard });
+      } else {
+        await this.reply(chatId, caption);
+      }
+    }
   }
 
   // ─── Haversine ─────────────────────────────────────────────────────────────
