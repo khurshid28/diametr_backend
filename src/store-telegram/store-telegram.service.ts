@@ -73,7 +73,9 @@ export class StoreTelegramService implements OnModuleInit {
     if (this.webhookBase) {
       await this.setWebhook(`${this.webhookBase}/api/v1/store/webhook`);
     } else {
-      this.logger.warn("STORE_BOT_WEBHOOK_URL topilmadi — webhook o'rnatilmadi");
+      this.logger.log("STORE_BOT_WEBHOOK_URL yo'q — long polling rejimida ishga tushmoqda...");
+      await this.deleteWebhook();
+      this.startPolling();
     }
     this.logger.log('Store bot ishga tushdi ✅');
   }
@@ -89,6 +91,41 @@ export class StoreTelegramService implements OnModuleInit {
     } catch (e: any) {
       this.logger.error(`setWebhook error: ${e?.message}`);
     }
+  }
+
+  private async deleteWebhook() {
+    try {
+      await axios.post(
+        `https://api.telegram.org/bot${this.token}/deleteWebhook`,
+        { drop_pending_updates: true },
+        { timeout: 8000 },
+      );
+    } catch { /* ignore */ }
+  }
+
+  /** Long-polling loop — runs when STORE_BOT_WEBHOOK_URL is not set */
+  private startPolling() {
+    let offset = 0;
+    const poll = async () => {
+      while (true) {
+        try {
+          const { data } = await axios.get(
+            `https://api.telegram.org/bot${this.token}/getUpdates`,
+            { params: { offset, limit: 100, timeout: 25 }, timeout: 30000 },
+          );
+          for (const update of data.result ?? []) {
+            offset = update.update_id + 1;
+            this.handleUpdate(update).catch((e: any) =>
+              this.logger.error(`poll handleUpdate: ${e?.message}`),
+            );
+          }
+        } catch (e: any) {
+          this.logger.error(`polling error: ${e?.message}`);
+          await new Promise((r) => setTimeout(r, 3000));
+        }
+      }
+    };
+    poll();
   }
 
   private async registerCommands() {
@@ -1311,7 +1348,9 @@ export class StoreTelegramService implements OnModuleInit {
       const parts = data.split(':');
       const piId  = parseInt(parts[1], 10);
       const page  = parseInt(parts[2] ?? '0', 10) || 0;
-      if (piId) await this.showProductShops(chatId, piId, page, messageId);
+      // Never pass messageId — shop list may be opened from a photo message which
+      // cannot be edited as text. Always send a fresh text message.
+      if (piId) await this.showProductShops(chatId, piId, page);
       await this.answerCallback(callbackQuery.id);
       return;
     }
