@@ -27,6 +27,7 @@ export class StoreTelegramService implements OnModuleInit {
 
   // In-memory state machine per chat_id
   private readonly userStates = new Map<string, UserState>();
+  private readonly ORDERS_PER_PAGE = 3;
 
   constructor(
     private readonly prisma: PrismaClientService,
@@ -158,7 +159,7 @@ export class StoreTelegramService implements OnModuleInit {
     }
   }
 
-  private async cmdOrders(chatId: string) {
+  private async cmdOrders(chatId: string, page = 0) {
     const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
     const lang = user?.lang ?? 'uz';
 
@@ -170,14 +171,9 @@ export class StoreTelegramService implements OnModuleInit {
       return this.reply(chatId, text);
     }
 
-    const orders = await this.prisma.order.findMany({
-      where: { user_id: user.id },
-      take: 5,
-      orderBy: { createdt: 'desc' },
-      include: { shop: { select: { name: true } } },
-    });
+    const total = await this.prisma.order.count({ where: { user_id: user.id } });
 
-    if (!orders.length) {
+    if (total === 0) {
       const text =
         lang === 'ru'
           ? '📭 У вас пока нет заказов.'
@@ -185,27 +181,85 @@ export class StoreTelegramService implements OnModuleInit {
       return this.reply(chatId, text);
     }
 
+    const totalPages = Math.ceil(total / this.ORDERS_PER_PAGE);
+    const safePage = Math.max(0, Math.min(page, totalPages - 1));
+
+    const orders = await this.prisma.order.findMany({
+      where: { user_id: user.id },
+      skip: safePage * this.ORDERS_PER_PAGE,
+      take: this.ORDERS_PER_PAGE,
+      orderBy: { createdt: 'desc' },
+      include: { shop: { select: { name: true } } },
+    });
+
+    const { text, keyboard } = this.buildOrdersPage(orders, lang, safePage, totalPages, total);
+    await this.sendMessage(chatId, text, { inline_keyboard: keyboard });
+  }
+
+  private buildOrdersPage(
+    orders: any[],
+    lang: string,
+    page: number,
+    totalPages: number,
+    total: number,
+  ): { text: string; keyboard: any[][] } {
     const statusEmoji: Record<string, string> = {
       STARTED: '⏳', FINISHED: '🏁', CONFIRMED: '✅', CANCELED: '❌',
     };
     const statusLabel: Record<string, Record<string, string>> = {
-      STARTED:   { uz: 'Jarayonda', ru: 'В процессе' },
-      FINISHED:  { uz: 'Yetkazildi', ru: 'Доставлен' },
-      CONFIRMED: { uz: 'Tasdiqlandi', ru: 'Подтверждён' },
+      STARTED:   { uz: 'Jarayonda',     ru: 'В процессе' },
+      FINISHED:  { uz: 'Yetkazildi',    ru: 'Доставлен' },
+      CONFIRMED: { uz: 'Tasdiqlandi',   ru: 'Подтверждён' },
       CANCELED:  { uz: 'Bekor qilindi', ru: 'Отменён' },
     };
+    const nums = ['1️⃣', '2️⃣', '3️⃣'];
+    const divider = '─────────────────────';
 
-    const header = lang === 'ru' ? '📦 <b>Ваши последние заказы:</b>' : '📦 <b>Oxirgi buyurtmalaringiz:</b>';
-    const lines = orders.map((o) => {
+    const header =
+      lang === 'ru'
+        ? `📦 <b>Мои заказы</b>  ·  Всего: ${total}`
+        : `📦 <b>Buyurtmalarim</b>  ·  Jami: ${total} ta`;
+
+    const lines = orders.map((o, i) => {
+      const num = nums[i] ?? `${page * this.ORDERS_PER_PAGE + i + 1}.`;
       const emoji = statusEmoji[o.status] ?? '⚪';
       const sl = statusLabel[o.status]?.[lang] ?? o.status;
       const shop = o.shop?.name ?? '—';
-      const amount = (o.amount ?? 0).toLocaleString();
-      const date = new Date(o.createdt).toLocaleDateString('uz-UZ', { timeZone: 'Asia/Tashkent' });
-      return `${emoji} <b>#${o.id}</b> — ${shop}\n   💰 ${amount} so'm · 📅 ${date}\n   📌 ${sl}`;
-    }).join('\n\n');
+      const amount = (o.amount ?? 0).toLocaleString('ru-RU');
+      const d = new Date(o.createdt);
+      const date =
+        `${String(d.getDate()).padStart(2, '0')}.` +
+        `${String(d.getMonth() + 1).padStart(2, '0')}.` +
+        `${d.getFullYear()}`;
+      return (
+        `${num} <b>#${o.id}</b>  ·  ${shop}\n` +
+        `    ${emoji} ${sl}\n` +
+        `    💰 ${amount} so'm   ·   📅 ${date}`
+      );
+    });
 
-    await this.reply(chatId, `${header}\n\n${lines}`);
+    const pageInfo =
+      lang === 'ru'
+        ? `📄 Страница ${page + 1} / ${totalPages}`
+        : `📄 Sahifa ${page + 1} / ${totalPages}`;
+
+    const text = `${header}\n${divider}\n\n${lines.join('\n\n')}\n\n${divider}\n${pageInfo}`;
+
+    const navRow: any[] = [];
+    if (page > 0) {
+      navRow.push({
+        text: '◀️ ' + (lang === 'ru' ? 'Назад' : 'Oldingi'),
+        callback_data: `orders_${page - 1}`,
+      });
+    }
+    if (page < totalPages - 1) {
+      navRow.push({
+        text: (lang === 'ru' ? 'Далее' : 'Keyingi') + ' ▶️',
+        callback_data: `orders_${page + 1}`,
+      });
+    }
+
+    return { text, keyboard: navRow.length > 0 ? [navRow] : [] };
   }
 
   private async cmdLanguage(chatId: string) {
@@ -300,7 +354,31 @@ export class StoreTelegramService implements OnModuleInit {
 
   private async handleCallback(callbackQuery: any) {
     const chatId = String(callbackQuery.message?.chat?.id);
+    const messageId: number = callbackQuery.message?.message_id;
     const data: string = callbackQuery.data ?? '';
+
+    // Orders pagination: orders_0, orders_1, ...
+    if (data.startsWith('orders_')) {
+      const page = parseInt(data.split('_')[1], 10) || 0;
+      const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
+      if (user) {
+        const lang = user.lang ?? 'uz';
+        const total = await this.prisma.order.count({ where: { user_id: user.id } });
+        const totalPages = Math.ceil(total / this.ORDERS_PER_PAGE);
+        const safePage = Math.max(0, Math.min(page, totalPages - 1));
+        const orders = await this.prisma.order.findMany({
+          where: { user_id: user.id },
+          skip: safePage * this.ORDERS_PER_PAGE,
+          take: this.ORDERS_PER_PAGE,
+          orderBy: { createdt: 'desc' },
+          include: { shop: { select: { name: true } } },
+        });
+        const { text, keyboard } = this.buildOrdersPage(orders, lang, safePage, totalPages, total);
+        await this.editMessage(chatId, messageId, text, { inline_keyboard: keyboard });
+      }
+      await this.answerCallback(callbackQuery.id);
+      return;
+    }
 
     if (data === 'lang_uz' || data === 'lang_ru') {
       const lang = data.replace('lang_', '');
@@ -313,12 +391,7 @@ export class StoreTelegramService implements OnModuleInit {
           ? '✅ Язык изменён на <b>Русский</b> 🇷🇺'
           : '✅ Til <b>O\'zbek</b> ga o\'zgartirildi 🇺🇿';
       await this.reply(chatId, text);
-      // Answer callback to remove loader on button
-      await axios.post(
-        `https://api.telegram.org/bot${this.token}/answerCallbackQuery`,
-        { callback_query_id: callbackQuery.id },
-        { timeout: 5000 },
-      ).catch(() => {});
+      await this.answerCallback(callbackQuery.id);
     }
   }
 
@@ -416,6 +489,32 @@ export class StoreTelegramService implements OnModuleInit {
       );
     } catch (e: any) {
       this.logger.error(`store bot sendLocation error (chat ${chatId}): ${e?.message}`);
+    }
+  }
+
+  private async answerCallback(callbackQueryId: string) {
+    await axios.post(
+      `https://api.telegram.org/bot${this.token}/answerCallbackQuery`,
+      { callback_query_id: callbackQueryId },
+      { timeout: 5000 },
+    ).catch(() => {});
+  }
+
+  private async editMessage(chatId: string, messageId: number, text: string, replyMarkup?: any) {
+    try {
+      await axios.post(
+        `https://api.telegram.org/bot${this.token}/editMessageText`,
+        {
+          chat_id: chatId,
+          message_id: messageId,
+          text,
+          parse_mode: 'HTML',
+          reply_markup: replyMarkup,
+        },
+        { timeout: 8000 },
+      );
+    } catch (e: any) {
+      this.logger.error(`store bot editMessage error (chat ${chatId}): ${e?.message}`);
     }
   }
 
