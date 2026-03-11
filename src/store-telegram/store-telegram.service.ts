@@ -402,6 +402,7 @@ export class StoreTelegramService implements OnModuleInit {
     const cache = this.userSearchCache.get(chatId) ?? {};
     cache.shopQ = query;
     this.userSearchCache.set(chatId, cache);
+    const userLoc = this.userLocations.get(chatId);
     const all = await this.prisma.shop.findMany({
       where: { work_status: 'WORKING', name: { contains: query } },
       select: { id: true, name: true, address: true, lat: true, lon: true },
@@ -413,7 +414,12 @@ export class StoreTelegramService implements OnModuleInit {
           ? `🔍 <b>Магазин не найден</b> по запросу «${query}»\n\nПопробуйте другое название.`
           : `🔍 <b>Do'kon topilmadi</b> «${query}» so'rovi bo'yicha\n\nBoshqa nom bilan qidiring.`);
     }
-    const { text, keyboard } = this.buildShopsPage(all, query, lang, page);
+    // Sort by distance if user location is known
+    const withDist = all.map((s) => ({
+      ...s,
+      dist: userLoc && s.lat && s.lon ? this.haversine(userLoc.lat, userLoc.lon, s.lat, s.lon) : null,
+    })).sort((a, b) => (a.dist ?? Infinity) - (b.dist ?? Infinity));
+    const { text, keyboard } = this.buildShopsPage(withDist, query, lang, page, userLoc);
     await this.sendMessage(chatId, text, { inline_keyboard: keyboard });
   }
 
@@ -447,6 +453,7 @@ export class StoreTelegramService implements OnModuleInit {
 
   private buildShopsPage(
     shops: any[], query: string, lang: string, page: number,
+    loc?: { lat: number; lon: number } | undefined,
   ): { text: string; keyboard: any[][] } {
     const total = shops.length;
     const totalPages = Math.ceil(total / this.SEARCH_PER_PAGE);
@@ -460,9 +467,15 @@ export class StoreTelegramService implements OnModuleInit {
     const lines = slice.map((s, i) => {
       const num = nums[i] ?? safePage * this.SEARCH_PER_PAGE + i + 1;
       const hasGeo = s.lat && s.lon;
-      const geoLine = hasGeo
-        ? '🗺 ' + (lang === 'ru' ? 'Есть на карте' : 'Xaritada mavjud')
-        : '📌 ' + (lang === 'ru' ? 'Координаты не указаны' : 'Koordinata yo\'q');
+      let geoLine: string;
+      if (s.dist != null) {
+        const d = s.dist < 1 ? `${Math.round(s.dist * 1000)} m` : `${s.dist.toFixed(1)} km`;
+        geoLine = `🚩 ${d} ` + (lang === 'ru' ? 'от вас' : 'uzoqda');
+      } else if (hasGeo) {
+        geoLine = '🗺 ' + (lang === 'ru' ? 'Есть на карте' : 'Xaritada mavjud');
+      } else {
+        geoLine = '📌 ' + (lang === 'ru' ? 'Координаты не указаны' : 'Koordinata yo\'q');
+      }
       return (
         `${num} <b>${s.name ?? '—'}</b>\n` +
         `    📍 ${s.address ?? (lang === 'ru' ? 'Адрес не указан' : 'Manzil ko\'rsatilmagan')}\n` +
@@ -606,12 +619,17 @@ export class StoreTelegramService implements OnModuleInit {
       const lang = user?.lang ?? 'uz';
       const query = this.userSearchCache.get(chatId)?.shopQ ?? '';
       if (query) {
+        const userLoc = this.userLocations.get(chatId);
         const all = await this.prisma.shop.findMany({
           where: { work_status: 'WORKING', name: { contains: query } },
           select: { id: true, name: true, address: true, lat: true, lon: true },
           take: 100,
         });
-        const { text, keyboard } = this.buildShopsPage(all, query, lang, page);
+        const withDist = all.map((s) => ({
+          ...s,
+          dist: userLoc && s.lat && s.lon ? this.haversine(userLoc.lat, userLoc.lon, s.lat, s.lon) : null,
+        })).sort((a, b) => (a.dist ?? Infinity) - (b.dist ?? Infinity));
+        const { text, keyboard } = this.buildShopsPage(withDist, query, lang, page, userLoc);
         await this.editMessage(chatId, messageId, text, { inline_keyboard: keyboard });
       }
       await this.answerCallback(callbackQuery.id);
