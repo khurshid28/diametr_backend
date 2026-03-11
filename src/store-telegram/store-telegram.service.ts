@@ -24,12 +24,6 @@ const STORE_BOT_COMMANDS_RU = [
   { command: 'help',     description: '❓ Список всех команд' },
 ];
 
-type UserState = {
-  state: 'idle' | 'waiting_code' | 'waiting_search_shop' | 'waiting_search_product';
-  smsId?: string;
-  phone?: string;
-};
-
 @Injectable()
 export class StoreTelegramService implements OnModuleInit {
   private readonly logger = new Logger(StoreTelegramService.name);
@@ -37,10 +31,6 @@ export class StoreTelegramService implements OnModuleInit {
   private readonly webhookBase = (process.env.STORE_BOT_WEBHOOK_URL ?? '').replace(/\/$/, '');
   private readonly storeUrl = 'https://diametr.uz/store';
 
-  // In-memory state machine per chat_id
-  private readonly userStates = new Map<string, UserState>();
-  private readonly userLocations = new Map<string, { lat: number; lon: number }>();
-  private readonly userSearchCache = new Map<string, { shopQ?: string; prodQ?: string }>();
   private readonly ORDERS_PER_PAGE = 3;
   private readonly SEARCH_PER_PAGE = 3;
 
@@ -123,21 +113,23 @@ export class StoreTelegramService implements OnModuleInit {
 
     const text: string = (message.text ?? '').trim();
 
-    // Check current state
-    const state = this.userStates.get(chatId);
-    if (state?.state === 'waiting_code' && text && !text.startsWith('/')) {
-      await this.handleSmsCode(chatId, text);
-      return;
-    }
-    if (state?.state === 'waiting_search_shop' && text && !text.startsWith('/')) {
-      this.userStates.delete(chatId);
-      await this.cmdSearchShops(chatId, text.trim(), 0);
-      return;
-    }
-    if (state?.state === 'waiting_search_product' && text && !text.startsWith('/')) {
-      this.userStates.delete(chatId);
-      await this.cmdSearchProducts(chatId, text.trim(), 0);
-      return;
+    // Check current state from DB
+    if (text && !text.startsWith('/')) {
+      const session = await this.getSession(chatId);
+      if (session?.state === 'waiting_code') {
+        await this.handleSmsCode(chatId, text);
+        return;
+      }
+      if (session?.state === 'waiting_search_shop') {
+        await this.clearState(chatId);
+        await this.cmdSearchShops(chatId, text.trim(), 0);
+        return;
+      }
+      if (session?.state === 'waiting_search_product') {
+        await this.clearState(chatId);
+        await this.cmdSearchProducts(chatId, text.trim(), 0);
+        return;
+      }
     }
 
     if (text.startsWith('/')) {
@@ -341,7 +333,7 @@ export class StoreTelegramService implements OnModuleInit {
   private async handleLocation(chatId: string, location: { latitude: number; longitude: number }) {
     const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
     const lang = user?.lang ?? 'uz';
-    this.userLocations.set(chatId, { lat: location.latitude, lon: location.longitude });
+    await this.upsertSession(chatId, { lat: location.latitude, lon: location.longitude });
     // Remove reply keyboard first
     const loadingText = lang === 'ru' ? '⏳ Ищу ближайшие магазины...' : '⏳ Yaqin do\'konlar qidirilmoqda...';
     await this.sendMessage(chatId, loadingText, { remove_keyboard: true });
@@ -418,10 +410,8 @@ export class StoreTelegramService implements OnModuleInit {
   private async cmdSearchShops(chatId: string, query: string, page: number) {
     const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
     const lang = user?.lang ?? 'uz';
-    const cache = this.userSearchCache.get(chatId) ?? {};
-    cache.shopQ = query;
-    this.userSearchCache.set(chatId, cache);
-    const userLoc = this.userLocations.get(chatId);
+    const sess = await this.upsertSession(chatId, { shop_q: query });
+    const userLoc = sess.lat && sess.lon ? { lat: sess.lat, lon: sess.lon } : undefined;
     const all = await this.prisma.shop.findMany({
       where: { work_status: 'WORKING', name: { contains: query } },
       select: { id: true, name: true, address: true, lat: true, lon: true },
@@ -445,9 +435,7 @@ export class StoreTelegramService implements OnModuleInit {
   private async cmdSearchProducts(chatId: string, query: string, page: number) {
     const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
     const lang = user?.lang ?? 'uz';
-    const cache = this.userSearchCache.get(chatId) ?? {};
-    cache.prodQ = query;
-    this.userSearchCache.set(chatId, cache);
+    await this.upsertSession(chatId, { prod_q: query });
     const all = await this.prisma.product.findMany({
       where: {
         work_status: 'WORKING',
@@ -543,7 +531,7 @@ export class StoreTelegramService implements OnModuleInit {
 
     try {
       const result = await this.smsService.send({ phone });
-      this.userStates.set(chatId, { state: 'waiting_code', smsId: result.id, phone });
+      await this.upsertSession(chatId, { state: 'waiting_code', sms_id: result.id, phone });
 
       const text =
         `✅ <b>SMS yuborildi!</b>\n\n` +
@@ -559,20 +547,20 @@ export class StoreTelegramService implements OnModuleInit {
   // ─── SMS code handler ────────────────────────────────────────────
 
   private async handleSmsCode(chatId: string, code: string) {
-    const state = this.userStates.get(chatId);
-    if (!state?.smsId) {
+    const session = await this.getSession(chatId);
+    if (!session?.sms_id) {
       return this.reply(chatId, '❌ Sessiya topilmadi. /start yozing.');
     }
 
     try {
       const result = await this.smsService.verify({
-        id: state.smsId,
+        id: session.sms_id,
         code,
         chat_id: chatId,
         lang: 'uz',
       });
 
-      this.userStates.delete(chatId);
+      await this.clearState(chatId);
 
       const token = result.access_token;
       const url = `${this.storeUrl}?token=${token}`;
@@ -592,10 +580,10 @@ export class StoreTelegramService implements OnModuleInit {
       if (msg.includes('noto\'g\'ri') || msg.includes('Kod')) {
         await this.reply(chatId, '❌ Kod noto\'g\'ri. Qayta kiriting yoki /start yozing.');
       } else if (msg.includes('muddati')) {
-        this.userStates.delete(chatId);
+        await this.clearState(chatId);
         await this.reply(chatId, '⏰ Kod muddati tugagan. /start yozing.');
       } else {
-        this.userStates.delete(chatId);
+        await this.clearState(chatId);
         await this.reply(chatId, '❌ Xatolik yuz berdi. /start yozing.');
       }
     }
@@ -634,11 +622,14 @@ export class StoreTelegramService implements OnModuleInit {
     // Shop search pagination
     if (data.startsWith('sh:')) {
       const page = parseInt(data.split(':')[1], 10) || 0;
-      const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
+      const [user, session] = await Promise.all([
+        this.prisma.user.findFirst({ where: { chat_id: chatId } }),
+        this.getSession(chatId),
+      ]);
       const lang = user?.lang ?? 'uz';
-      const query = this.userSearchCache.get(chatId)?.shopQ ?? '';
+      const query = session?.shop_q ?? '';
       if (query) {
-        const userLoc = this.userLocations.get(chatId);
+        const userLoc = session?.lat && session?.lon ? { lat: session.lat, lon: session.lon } : undefined;
         const all = await this.prisma.shop.findMany({
           where: { work_status: 'WORKING', name: { contains: query } },
           select: { id: true, name: true, address: true, lat: true, lon: true },
@@ -658,9 +649,12 @@ export class StoreTelegramService implements OnModuleInit {
     // Product search pagination
     if (data.startsWith('pr:')) {
       const page = parseInt(data.split(':')[1], 10) || 0;
-      const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
+      const [user, session] = await Promise.all([
+        this.prisma.user.findFirst({ where: { chat_id: chatId } }),
+        this.getSession(chatId),
+      ]);
       const lang = user?.lang ?? 'uz';
-      const query = this.userSearchCache.get(chatId)?.prodQ ?? '';
+      const query = session?.prod_q ?? '';
       if (query) {
         const all = await this.prisma.product.findMany({
           where: {
@@ -680,9 +674,12 @@ export class StoreTelegramService implements OnModuleInit {
     // Nearby shops pagination
     if (data.startsWith('nb:')) {
       const page = parseInt(data.split(':')[1], 10) || 0;
-      const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
+      const [user, session] = await Promise.all([
+        this.prisma.user.findFirst({ where: { chat_id: chatId } }),
+        this.getSession(chatId),
+      ]);
       const lang = user?.lang ?? 'uz';
-      const loc = this.userLocations.get(chatId);
+      const loc = session?.lat && session?.lon ? { lat: session.lat, lon: session.lon } : null;
       if (loc) {
         const { text, keyboard } = await this.buildNearbyContent(loc.lat, loc.lon, page, lang);
         await this.editMessage(chatId, messageId, text, { inline_keyboard: keyboard });
@@ -696,7 +693,7 @@ export class StoreTelegramService implements OnModuleInit {
       const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
       const lang = user?.lang ?? 'uz';
       const isShop = data === 'search_shop';
-      this.userStates.set(chatId, { state: isShop ? 'waiting_search_shop' : 'waiting_search_product' });
+      await this.upsertSession(chatId, { state: isShop ? 'waiting_search_shop' : 'waiting_search_product' });
       const prompt = isShop
         ? (lang === 'ru' ? '🏪 Введите название магазина:' : '🏪 Do\'kon nomini yozing:')
         : (lang === 'ru' ? '📦 Введите название товара:' : '📦 Tovar nomini yozing:');
@@ -783,6 +780,31 @@ export class StoreTelegramService implements OnModuleInit {
       ? `❌ <b>Заказ #${order.id} отменён.</b>\nЕсли у вас есть вопросы, свяжитесь с поддержкой.`
       : `❌ <b>#${order.id} buyurtmangiz bekor qilindi.</b>\nSavollaringiz bo'lsa, qo'llab-quvvatlash bilan bog'laning.`;
     await this.reply(chatId, text);
+  }
+
+  // ─── Session helpers (DB-backed) ────────────────────────────────
+
+  private async getSession(chatId: string) {
+    return this.prisma.botSession.findUnique({ where: { chat_id: chatId } });
+  }
+
+  private async upsertSession(chatId: string, data: Partial<{
+    state: string; sms_id: string | null; phone: string | null;
+    lat: number | null; lon: number | null; shop_q: string | null; prod_q: string | null;
+  }>) {
+    return this.prisma.botSession.upsert({
+      where: { chat_id: chatId },
+      update: data,
+      create: { chat_id: chatId, ...data },
+    });
+  }
+
+  private async clearState(chatId: string) {
+    return this.prisma.botSession.upsert({
+      where: { chat_id: chatId },
+      update: { state: 'idle', sms_id: null, phone: null },
+      create: { chat_id: chatId, state: 'idle' },
+    });
   }
 
   // ─── Private helpers ─────────────────────────────────────────────
