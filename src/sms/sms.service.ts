@@ -12,6 +12,29 @@ import { generatePassword } from 'src/_utils/number.gen';
 import { addMinutes, isBefore } from 'date-fns';
 import { JwtService } from '@nestjs/jwt';
 
+const smsMessages = {
+  uz: {
+    smsSendError: "SMS yuborishda xatolik yuz berdi. Keyinroq qayta urinib ko'ring.",
+    serverError: "Serverda xatolik yuz berdi. Qayta urinib ko'ring.",
+    codeNotFound: 'Tasdiqlash kodi topilmadi. Qayta SMS oling.',
+    codeExpired: 'Kod muddati tugagan (5 daqiqa). Yangi kod oling.',
+    codeUsed: 'Bu kod allaqachon ishlatilgan. Yangi SMS oling.',
+    codeWrong: "Kod noto'g'ri. Qayta tekshiring.",
+  },
+  ru: {
+    smsSendError: 'Ошибка при отправке SMS. Попробуйте позже.',
+    serverError: 'Ошибка сервера. Попробуйте ещё раз.',
+    codeNotFound: 'Код подтверждения не найден. Получите новый SMS.',
+    codeExpired: 'Срок действия кода истёк (5 минут). Получите новый код.',
+    codeUsed: 'Этот код уже использован. Получите новый SMS.',
+    codeWrong: 'Неверный код. Проверьте ещё раз.',
+  },
+};
+
+function m(lang: string): typeof smsMessages.uz {
+  return smsMessages[lang === 'ru' ? 'ru' : 'uz'];
+}
+
 @Injectable()
 export class SmsService {
   constructor(
@@ -19,7 +42,7 @@ export class SmsService {
     private jwtService: JwtService,
   ) {}
   private logger = new Logger('Sms service');
-  async send(data: SmsSendDto) {
+  async send(data: SmsSendDto, lang = 'uz') {
     this.logger.log('send');
 
     // let code = generatePassword({ length: 6 });
@@ -45,13 +68,11 @@ export class SmsService {
       };
     } catch (e: any) {
       this.logger.error('verify.create error', e?.message);
-      throw new InternalServerErrorException(
-        'SMS yuborishda xatolik yuz berdi. Keyinroq qayta urinib ko\'ring.',
-      );
+      throw new InternalServerErrorException(m(lang).smsSendError);
     }
   }
 
-  async verify(data: SmsVerifyDto) {
+  async verify(data: SmsVerifyDto, lang = 'uz') {
     this.logger.log('verify');
 
     let verify: any;
@@ -59,29 +80,23 @@ export class SmsService {
       verify = await this.prisma.verify.findUnique({ where: { id: data.id } });
     } catch (e: any) {
       this.logger.error('verify.findUnique error', e?.message);
-      throw new InternalServerErrorException(
-        'Serverda xatolik yuz berdi. Qayta urinib ko\'ring.',
-      );
+      throw new InternalServerErrorException(m(lang).serverError);
     }
 
     if (!verify) {
-      throw new NotFoundException('Tasdiqlash kodi topilmadi. Qayta SMS oling.');
+      throw new NotFoundException(m(lang).codeNotFound);
     }
 
     if (isBefore(verify.expired, new Date())) {
-      throw new BadRequestException(
-        'Kod muddati tugagan (5 daqiqa). Yangi kod oling.',
-      );
+      throw new BadRequestException(m(lang).codeExpired);
     }
 
     if (verify.used) {
-      throw new BadRequestException(
-        'Bu kod allaqachon ishlatilgan. Yangi SMS oling.',
-      );
+      throw new BadRequestException(m(lang).codeUsed);
     }
 
     if (verify.code !== data.code) {
-      throw new BadRequestException("Kod noto'g'ri. Qayta tekshiring.");
+      throw new BadRequestException(m(lang).codeWrong);
     }
 
     try {

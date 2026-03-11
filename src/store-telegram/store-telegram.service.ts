@@ -41,7 +41,7 @@ export class StoreTelegramService implements OnModuleInit {
     }
     await this.registerCommands();
     if (this.webhookBase) {
-      await this.setWebhook(`${this.webhookBase}/store/webhook`);
+      await this.setWebhook(`${this.webhookBase}/api/v1/store/webhook`);
     } else {
       this.logger.warn('STORE_BOT_WEBHOOK_URL topilmadi — webhook o\'rnatilmadi');
     }

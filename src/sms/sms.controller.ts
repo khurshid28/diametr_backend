@@ -5,6 +5,7 @@ import {
   Body,
   HttpStatus,
   HttpCode,
+  Headers,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { SmsService } from './sms.service';
@@ -19,14 +20,14 @@ export class SmsController {
   @Post('/send')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'SMS yuborish (telefon raqamga OTP)' })
-  send(@Body() data: SmsSendDto) {
-    return this.smsService.send(data);
+  send(@Body() data: SmsSendDto, @Headers('accept-language') lang: string) {
+    return this.smsService.send(data, lang);
   }
 
   @Post('/verify')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'SMS kodni tekshirish va foydalanuvchini ro’yxatdan o’tkazish' })
-  verify(@Body() data: SmsVerifyDto) {
-    return this.smsService.verify(data);
+  verify(@Body() data: SmsVerifyDto, @Headers('accept-language') lang: string) {
+    return this.smsService.verify(data, lang);
   }
 }
