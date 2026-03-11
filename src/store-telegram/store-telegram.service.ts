@@ -5,11 +5,13 @@ import { SmsService } from 'src/sms/sms.service';
 import { JwtService } from '@nestjs/jwt';
 
 const STORE_BOT_COMMANDS = [
-  { command: 'start', description: '🛒 Botni ishga tushirish va do\'konga kirish' },
-  { command: 'login', description: '🔑 Tizimga kirish yoki qayta kirish' },
-  { command: 'orders', description: '📦 Mening buyurtmalarim' },
-  { command: 'language', description: '🌐 Tilni o\'zgartirish (uz/ru)' },
-  { command: 'help', description: '❓ Yordam va komandalar ro\'yxati' },
+  { command: 'start',    description: '🏠 Botni ishga tushirish — Do\'konga kirish' },
+  { command: 'orders',   description: '📦 Mening buyurtmalarim — Barchasi sahifali' },
+  { command: 'nearby',   description: '📍 Yaqin atrofdagi do\'konlar — GPS orqali' },
+  { command: 'search',   description: '🔍 Qidirish — do\'kon yoki tovar' },
+  { command: 'language', description: '🌐 Tilni o\'zgartirish — uz / ru' },
+  { command: 'login',    description: '🔑 Tizimga kirish yoki qayta kirish' },
+  { command: 'help',     description: '❓ Barcha komandalar ro\'yxati' },
 ];
 
 type UserState = {
@@ -27,7 +29,10 @@ export class StoreTelegramService implements OnModuleInit {
 
   // In-memory state machine per chat_id
   private readonly userStates = new Map<string, UserState>();
+  private readonly userLocations = new Map<string, { lat: number; lon: number }>();
+  private readonly userSearchCache = new Map<string, { shopQ?: string; prodQ?: string }>();
   private readonly ORDERS_PER_PAGE = 3;
+  private readonly SEARCH_PER_PAGE = 3;
 
   constructor(
     private readonly prisma: PrismaClientService,
@@ -97,6 +102,12 @@ export class StoreTelegramService implements OnModuleInit {
       return;
     }
 
+    // Location shared by user (for nearby shops)
+    if (message.location) {
+      await this.handleLocation(chatId, message.location);
+      return;
+    }
+
     const text: string = (message.text ?? '').trim();
 
     // Check current state
@@ -109,7 +120,14 @@ export class StoreTelegramService implements OnModuleInit {
     if (text.startsWith('/')) {
       const cmd = text.split(' ')[0].split('@')[0].toLowerCase();
       await this.handleCommand(cmd, chatId, message.from);
+      return;
     }
+
+    // Free-text search — "qidirish do'kon: X" or "qidirish tovar: X"
+    const shopMatch = text.match(/^(?:qidirish\s+do[`']?kon|do[`']?kon\s+qidirish|поиск\s+магазин)[:\s]\s*(.+)/i);
+    const prodMatch = text.match(/^(?:qidirish\s+tovar|tovar\s+qidirish|поиск\s+товар)[:\s]\s*(.+)/i);
+    if (shopMatch) { await this.cmdSearchShops(chatId, shopMatch[1].trim(), 0); return; }
+    if (prodMatch) { await this.cmdSearchProducts(chatId, prodMatch[1].trim(), 0); return; }
   }
 
   private async handleCommand(cmd: string, chatId: string, from?: any) {
@@ -119,6 +137,10 @@ export class StoreTelegramService implements OnModuleInit {
         return this.cmdStart(chatId);
       case '/orders':
         return this.cmdOrders(chatId);
+      case '/nearby':
+        return this.cmdNearby(chatId);
+      case '/search':
+        return this.cmdSearchHint(chatId);
       case '/language':
         return this.cmdLanguage(chatId);
       case '/help':
@@ -284,6 +306,203 @@ export class StoreTelegramService implements OnModuleInit {
     await this.reply(chatId, text);
   }
 
+  // ─── /nearby ────────────────────────────────────────────────────
+
+  private async cmdNearby(chatId: string) {
+    const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
+    const lang = user?.lang ?? 'uz';
+    const text = lang === 'ru'
+      ? '📍 <b>Поделитесь своим местоположением</b>, чтобы найти ближайшие магазины:'
+      : '📍 <b>Joylashuvingizni ulashing</b>, yaqin do\'konlarni topish uchun:';
+    await this.sendMessage(chatId, text, {
+      keyboard: [[{ text: '📍 Joylashuvni ulashish', request_location: true }]],
+      resize_keyboard: true,
+      one_time_keyboard: true,
+    });
+  }
+
+  private async handleLocation(chatId: string, location: { latitude: number; longitude: number }) {
+    const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
+    const lang = user?.lang ?? 'uz';
+    this.userLocations.set(chatId, { lat: location.latitude, lon: location.longitude });
+    const { text, keyboard } = await this.buildNearbyContent(location.latitude, location.longitude, 0, lang);
+    await this.sendMessage(chatId, text, { inline_keyboard: keyboard });
+  }
+
+  private async buildNearbyContent(
+    lat: number, lon: number, page: number, lang: string,
+  ): Promise<{ text: string; keyboard: any[][] }> {
+    const allShops = await this.prisma.shop.findMany({
+      where: { work_status: 'WORKING', lat: { not: null }, lon: { not: null } },
+      select: { id: true, name: true, address: true, lat: true, lon: true },
+    });
+    const sorted = allShops
+      .map((s) => ({ ...s, dist: this.haversine(lat, lon, s.lat!, s.lon!) }))
+      .sort((a, b) => a.dist - b.dist);
+    const total = sorted.length;
+    if (total === 0) {
+      return {
+        text: lang === 'ru' ? '😔 Рядом нет работающих магазинов.' : '😔 Yaqin atrofda do\'kon topilmadi.',
+        keyboard: [],
+      };
+    }
+    const totalPages = Math.ceil(total / this.SEARCH_PER_PAGE);
+    const safePage = Math.max(0, Math.min(page, totalPages - 1));
+    const slice = sorted.slice(safePage * this.SEARCH_PER_PAGE, (safePage + 1) * this.SEARCH_PER_PAGE);
+    const nums = ['1️⃣', '2️⃣', '3️⃣'];
+    const divider = '━━━━━━━━━━━━━━━━━━━━━';
+    const header = lang === 'ru'
+      ? `📍 <b>Ближайшие магазины</b>  ·  Всего: ${total}`
+      : `📍 <b>Yaqin do'konlar</b>  ·  Jami: ${total} ta`;
+    const lines = slice.map((s, i) => {
+      const d = s.dist < 1 ? `${Math.round(s.dist * 1000)} m` : `${s.dist.toFixed(1)} km`;
+      return (
+        `${nums[i] ?? safePage * this.SEARCH_PER_PAGE + i + 1} <b>${s.name ?? '—'}</b>\n` +
+        `    📍 ${s.address ?? '—'}\n` +
+        `    🚩 ${d} ` + (lang === 'ru' ? 'от вас' : 'uzoqda')
+      );
+    });
+    const pageInfo = lang === 'ru' ? `📄 Страница ${safePage + 1} / ${totalPages}` : `📄 Sahifa ${safePage + 1} / ${totalPages}`;
+    const text = `${header}\n${divider}\n\n${lines.join('\n\n')}\n\n${divider}\n${pageInfo}`;
+    const navRow: any[] = [];
+    if (safePage > 0) navRow.push({ text: `◀️ ${lang === 'ru' ? 'Назад' : 'Oldingi'}`, callback_data: `nb:${safePage - 1}` });
+    if (safePage < totalPages - 1) navRow.push({ text: `${lang === 'ru' ? 'Далее' : 'Keyingi'} ▶️`, callback_data: `nb:${safePage + 1}` });
+    return { text, keyboard: navRow.length ? [navRow] : [] };
+  }
+
+  private haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  // ─── /search ────────────────────────────────────────────────────
+
+  private async cmdSearchHint(chatId: string) {
+    const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
+    const lang = user?.lang ?? 'uz';
+    const text = lang === 'ru'
+      ? `🔍 <b>Как искать:</b>\n\n` +
+        `🏪 <b>Поиск магазина:</b>\n<code>qidirish do'kon: Novostroy</code>\n\n` +
+        `📦 <b>Поиск товара:</b>\n<code>qidirish tovar: sement</code>\n\n` +
+        `📍 Ближайшие магазины: /nearby`
+      : `🔍 <b>Qidirish yo'riqnomasi:</b>\n\n` +
+        `🏪 <b>Do'kon qidirish:</b>\n<code>qidirish do'kon: Novostroy</code>\n\n` +
+        `📦 <b>Tovar qidirish:</b>\n<code>qidirish tovar: sement</code>\n\n` +
+        `📍 Yaqin do'konlar: /nearby`;
+    await this.reply(chatId, text);
+  }
+
+  private async cmdSearchShops(chatId: string, query: string, page: number) {
+    const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
+    const lang = user?.lang ?? 'uz';
+    const cache = this.userSearchCache.get(chatId) ?? {};
+    cache.shopQ = query;
+    this.userSearchCache.set(chatId, cache);
+    const all = await this.prisma.shop.findMany({
+      where: { work_status: 'WORKING', name: { contains: query } },
+      select: { id: true, name: true, address: true, lat: true, lon: true },
+      take: 100,
+    });
+    if (all.length === 0) {
+      return this.reply(chatId,
+        lang === 'ru'
+          ? `🔍 <b>Магазин не найден</b> по запросу «${query}»\n\nПопробуйте другое название.`
+          : `🔍 <b>Do'kon topilmadi</b> «${query}» so'rovi bo'yicha\n\nBoshqa nom bilan qidiring.`);
+    }
+    const { text, keyboard } = this.buildShopsPage(all, query, lang, page);
+    await this.sendMessage(chatId, text, { inline_keyboard: keyboard });
+  }
+
+  private async cmdSearchProducts(chatId: string, query: string, page: number) {
+    const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
+    const lang = user?.lang ?? 'uz';
+    const cache = this.userSearchCache.get(chatId) ?? {};
+    cache.prodQ = query;
+    this.userSearchCache.set(chatId, cache);
+    const all = await this.prisma.product.findMany({
+      where: {
+        work_status: 'WORKING',
+        OR: [
+          { name: { contains: query } },
+          { name_uz: { contains: query } },
+          { name_ru: { contains: query } },
+        ],
+      },
+      select: { id: true, name: true, name_uz: true, name_ru: true, category: { select: { name: true } } },
+      take: 100,
+    });
+    if (all.length === 0) {
+      return this.reply(chatId,
+        lang === 'ru'
+          ? `🔍 <b>Товар не найден</b> по запросу «${query}»\n\nПопробуйте другое название.`
+          : `🔍 <b>Tovar topilmadi</b> «${query}» so'rovi bo'yicha\n\nBoshqa nom bilan qidiring.`);
+    }
+    const { text, keyboard } = this.buildProductsPage(all, query, lang, page);
+    await this.sendMessage(chatId, text, { inline_keyboard: keyboard });
+  }
+
+  private buildShopsPage(
+    shops: any[], query: string, lang: string, page: number,
+  ): { text: string; keyboard: any[][] } {
+    const total = shops.length;
+    const totalPages = Math.ceil(total / this.SEARCH_PER_PAGE);
+    const safePage = Math.max(0, Math.min(page, totalPages - 1));
+    const slice = shops.slice(safePage * this.SEARCH_PER_PAGE, (safePage + 1) * this.SEARCH_PER_PAGE);
+    const nums = ['1️⃣', '2️⃣', '3️⃣'];
+    const divider = '━━━━━━━━━━━━━━━━━━━━━';
+    const header = lang === 'ru'
+      ? `🏪 <b>Результат поиска</b>  ·  «${query}»  ·  ${total} шт.`
+      : `🏪 <b>Qidiruv natijasi</b>  ·  «${query}»  ·  ${total} ta`;
+    const lines = slice.map((s, i) => {
+      const num = nums[i] ?? safePage * this.SEARCH_PER_PAGE + i + 1;
+      const hasGeo = s.lat && s.lon;
+      const geoLine = hasGeo
+        ? '🗺 ' + (lang === 'ru' ? 'Есть на карте' : 'Xaritada mavjud')
+        : '📌 ' + (lang === 'ru' ? 'Координаты не указаны' : 'Koordinata yo\'q');
+      return (
+        `${num} <b>${s.name ?? '—'}</b>\n` +
+        `    📍 ${s.address ?? (lang === 'ru' ? 'Адрес не указан' : 'Manzil ko\'rsatilmagan')}\n` +
+        `    ${geoLine}`
+      );
+    });
+    const pageInfo = lang === 'ru' ? `📄 Страница ${safePage + 1} / ${totalPages}` : `📄 Sahifa ${safePage + 1} / ${totalPages}`;
+    const text = `${header}\n${divider}\n\n${lines.join('\n\n')}\n\n${divider}\n${pageInfo}`;
+    const navRow: any[] = [];
+    if (safePage > 0) navRow.push({ text: `◀️ ${lang === 'ru' ? 'Назад' : 'Oldingi'}`, callback_data: `sh:${safePage - 1}` });
+    if (safePage < totalPages - 1) navRow.push({ text: `${lang === 'ru' ? 'Далее' : 'Keyingi'} ▶️`, callback_data: `sh:${safePage + 1}` });
+    return { text, keyboard: navRow.length ? [navRow] : [] };
+  }
+
+  private buildProductsPage(
+    products: any[], query: string, lang: string, page: number,
+  ): { text: string; keyboard: any[][] } {
+    const total = products.length;
+    const totalPages = Math.ceil(total / this.SEARCH_PER_PAGE);
+    const safePage = Math.max(0, Math.min(page, totalPages - 1));
+    const slice = products.slice(safePage * this.SEARCH_PER_PAGE, (safePage + 1) * this.SEARCH_PER_PAGE);
+    const nums = ['1️⃣', '2️⃣', '3️⃣'];
+    const divider = '━━━━━━━━━━━━━━━━━━━━━';
+    const header = lang === 'ru'
+      ? `📦 <b>Результат поиска</b>  ·  «${query}»  ·  ${total} шт.`
+      : `📦 <b>Qidiruv natijasi</b>  ·  «${query}»  ·  ${total} ta`;
+    const lines = slice.map((p, i) => {
+      const num = nums[i] ?? safePage * this.SEARCH_PER_PAGE + i + 1;
+      const pname = (lang === 'ru' ? p.name_ru : p.name_uz) ?? p.name ?? '—';
+      const cat = p.category?.name ?? (lang === 'ru' ? 'Без категории' : 'Kategoriyasiz');
+      return `${num} <b>${pname}</b>\n    🗂 ${cat}`;
+    });
+    const pageInfo = lang === 'ru' ? `📄 Страница ${safePage + 1} / ${totalPages}` : `📄 Sahifa ${safePage + 1} / ${totalPages}`;
+    const text = `${header}\n${divider}\n\n${lines.join('\n\n')}\n\n${divider}\n${pageInfo}`;
+    const navRow: any[] = [];
+    if (safePage > 0) navRow.push({ text: `◀️ ${lang === 'ru' ? 'Назад' : 'Oldingi'}`, callback_data: `pr:${safePage - 1}` });
+    if (safePage < totalPages - 1) navRow.push({ text: `${lang === 'ru' ? 'Далее' : 'Keyingi'} ▶️`, callback_data: `pr:${safePage + 1}` });
+    return { text, keyboard: navRow.length ? [navRow] : [] };
+  }
+
   // ─── Contact handler ─────────────────────────────────────────────
 
   private async handleContact(chatId: string, contact: any) {
@@ -374,6 +593,61 @@ export class StoreTelegramService implements OnModuleInit {
           include: { shop: { select: { name: true } } },
         });
         const { text, keyboard } = this.buildOrdersPage(orders, lang, safePage, totalPages, total);
+        await this.editMessage(chatId, messageId, text, { inline_keyboard: keyboard });
+      }
+      await this.answerCallback(callbackQuery.id);
+      return;
+    }
+
+    // Shop search pagination
+    if (data.startsWith('sh:')) {
+      const page = parseInt(data.split(':')[1], 10) || 0;
+      const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
+      const lang = user?.lang ?? 'uz';
+      const query = this.userSearchCache.get(chatId)?.shopQ ?? '';
+      if (query) {
+        const all = await this.prisma.shop.findMany({
+          where: { work_status: 'WORKING', name: { contains: query } },
+          select: { id: true, name: true, address: true, lat: true, lon: true },
+          take: 100,
+        });
+        const { text, keyboard } = this.buildShopsPage(all, query, lang, page);
+        await this.editMessage(chatId, messageId, text, { inline_keyboard: keyboard });
+      }
+      await this.answerCallback(callbackQuery.id);
+      return;
+    }
+
+    // Product search pagination
+    if (data.startsWith('pr:')) {
+      const page = parseInt(data.split(':')[1], 10) || 0;
+      const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
+      const lang = user?.lang ?? 'uz';
+      const query = this.userSearchCache.get(chatId)?.prodQ ?? '';
+      if (query) {
+        const all = await this.prisma.product.findMany({
+          where: {
+            work_status: 'WORKING',
+            OR: [{ name: { contains: query } }, { name_uz: { contains: query } }, { name_ru: { contains: query } }],
+          },
+          select: { id: true, name: true, name_uz: true, name_ru: true, category: { select: { name: true } } },
+          take: 100,
+        });
+        const { text, keyboard } = this.buildProductsPage(all, query, lang, page);
+        await this.editMessage(chatId, messageId, text, { inline_keyboard: keyboard });
+      }
+      await this.answerCallback(callbackQuery.id);
+      return;
+    }
+
+    // Nearby shops pagination
+    if (data.startsWith('nb:')) {
+      const page = parseInt(data.split(':')[1], 10) || 0;
+      const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
+      const lang = user?.lang ?? 'uz';
+      const loc = this.userLocations.get(chatId);
+      if (loc) {
+        const { text, keyboard } = await this.buildNearbyContent(loc.lat, loc.lon, page, lang);
         await this.editMessage(chatId, messageId, text, { inline_keyboard: keyboard });
       }
       await this.answerCallback(callbackQuery.id);
