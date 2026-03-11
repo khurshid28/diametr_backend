@@ -7,6 +7,8 @@ model BotSession {
   lon       Float?
   shop_q    String?
   prod_q    String?
+  cart      String? @db.Text   // JSON: CartItem[]
+  chk       String? @db.Text   // JSON: CheckoutCtx
 
   updatedAt DateTime @updatedAt
 
