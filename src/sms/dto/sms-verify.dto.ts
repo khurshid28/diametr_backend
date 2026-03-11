@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsNotEmpty,
+  IsOptional,
   IsString,
   MinLength,
 } from 'class-validator';
@@ -16,4 +17,15 @@ export class SmsVerifyDto {
   @IsString()
   @MinLength(4)
   code: string;
+
+  @ApiProperty({ example: '123456789', description: 'Telegram chat_id (ixtiyoriy)', required: false })
+  @IsOptional()
+  @IsString()
+  chat_id?: string;
+
+  @ApiProperty({ example: 'uz', description: 'Foydalanuvchi tili: uz | ru (ixtiyoriy)', required: false })
+  @IsOptional()
+  @IsString()
+  lang?: string;
 }
+

@@ -53,6 +53,12 @@ enum ORDER_STATUS {
    CONFIRMED
 }
 
+enum ORDER_SOURCE {
+   MOBILE
+   SITE
+   STORE_BOT
+}
+
 
 enum PAYMENT_TYPE {
    SHOP 

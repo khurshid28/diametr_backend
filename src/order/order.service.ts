@@ -6,9 +6,10 @@ import {
 } from '@nestjs/common';
 import { PrismaClientService } from 'src/_prisma_client/prisma_client.service';
 import { CreateOrderDto } from './dto/create-order.dto';
-import { ORDER_STATUS } from '@prisma/client';
+import { ORDER_SOURCE, ORDER_STATUS } from '@prisma/client';
 import { PromoCodeService } from 'src/promo-code/promo-code.service';
 import { TelegramService } from 'src/telegram/telegram.service';
+import { StoreTelegramService } from 'src/store-telegram/store-telegram.service';
 
 @Injectable()
 export class OrderService {
@@ -16,6 +17,7 @@ export class OrderService {
     private readonly prisma: PrismaClientService,
     private readonly promoCodeService: PromoCodeService,
     private readonly telegram: TelegramService,
+    private readonly storeTelegram: StoreTelegramService,
   ) {}
   private logger = new Logger('Order service');
   async create(data: CreateOrderDto, userId?: number) {
@@ -61,6 +63,7 @@ export class OrderService {
           desc: data.desc,
           payment_type: data.payment_type,
           delivery_type: data.delivery_type,
+          source: data.source ?? ORDER_SOURCE.SITE,
           user_id: userId ?? null,
           promo_code_id: promoCodeId,
           discount_percent: discountPercent,
@@ -138,6 +141,7 @@ export class OrderService {
     });
 
     this.telegram.notifyNewOrder(fullOrder).catch(() => {});
+    this.storeTelegram.notifyUserNewOrder(fullOrder).catch(() => {});
     return fullOrder;
   }
 
@@ -294,6 +298,7 @@ export class OrderService {
         },
       });
       this.telegram.notifyOrderFinished(order.id).catch(() => {});
+      this.storeTelegram.notifyUserOrderFinished(order).catch(() => {});
       return updated;
     });
   }
@@ -323,6 +328,7 @@ export class OrderService {
       },
     });
     this.telegram.notifyOrderConfirmed(order.id).catch(() => {});
+    this.storeTelegram.notifyUserOrderConfirmed(order).catch(() => {});
     return updated;
   }
   async cancel(id: number) {
@@ -347,6 +353,7 @@ export class OrderService {
       },
     });
     this.telegram.notifyOrderCanceled(order.id).catch(() => {});
+    this.storeTelegram.notifyUserOrderCanceled(order).catch(() => {});
     return updated;
   }
 }

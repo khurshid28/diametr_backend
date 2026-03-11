@@ -1,4 +1,4 @@
-import { DELIVERY_TYPE } from '@prisma/client';
+import { DELIVERY_TYPE, ORDER_SOURCE } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   ArrayNotEmpty,
@@ -57,6 +57,11 @@ export class CreateOrderDto {
     message: 'delivery_type can be YANDEX, MARKET, FIXED',
   })
   delivery_type: DELIVERY_TYPE;
+
+  /** Order source: MOBILE | SITE | STORE_BOT */
+  @IsOptional()
+  @IsEnum(ORDER_SOURCE)
+  source?: ORDER_SOURCE;
 
   @ValidateNested({ each: true })
   @Type(() => ProductItemDto)

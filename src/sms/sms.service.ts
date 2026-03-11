@@ -93,6 +93,17 @@ export class SmsService {
         });
       }
 
+      // Save chat_id and lang if provided (store bot login)
+      const updateData: { chat_id?: string; lang?: string } = {};
+      if (data.chat_id) updateData.chat_id = data.chat_id;
+      if (data.lang && ['uz', 'ru'].includes(data.lang)) updateData.lang = data.lang;
+      if (Object.keys(updateData).length > 0) {
+        user = await this.prisma.user.update({
+          where: { id: user.id },
+          data: updateData,
+        });
+      }
+
       const payload = { user_id: user.id, role: user.role };
       return {
         user,

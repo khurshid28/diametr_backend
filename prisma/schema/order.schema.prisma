@@ -25,6 +25,7 @@ model Order {
 
     amount        Int?
     delivery_type DELIVERY_TYPE? @default(MARKET)
+    source        ORDER_SOURCE?  @default(SITE)
     desc String?
 
     products OrderProduct[]

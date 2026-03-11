@@ -9,8 +9,12 @@ model User {
   promo_code_uses PromoCodeUse[]
 
   role Role @default(USER)
-  createdt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+
+  chat_id String? @unique
+  lang    String? @default("uz")
+
+  createdt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("user")
 }
