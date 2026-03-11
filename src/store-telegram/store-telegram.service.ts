@@ -14,6 +14,16 @@ const STORE_BOT_COMMANDS = [
   { command: 'help',     description: '❓ Barcha komandalar ro\'yxati' },
 ];
 
+const STORE_BOT_COMMANDS_RU = [
+  { command: 'start',    description: '🏠 Запустить бота — Перейти в магазин' },
+  { command: 'orders',   description: '📦 Мои заказы — Со страницами' },
+  { command: 'nearby',   description: '📍 Ближайшие магазины — Через GPS' },
+  { command: 'search',   description: '🔍 Поиск — магазин или товар' },
+  { command: 'language', description: '🌐 Сменить язык — uz / ru' },
+  { command: 'login',    description: '🔑 Войти или перевойти вход' },
+  { command: 'help',     description: '❓ Список всех команд' },
+];
+
 type UserState = {
   state: 'idle' | 'waiting_code';
   smsId?: string;
@@ -71,11 +81,14 @@ export class StoreTelegramService implements OnModuleInit {
 
   private async registerCommands() {
     try {
-      await axios.post(
-        `https://api.telegram.org/bot${this.token}/setMyCommands`,
-        { commands: STORE_BOT_COMMANDS },
-        { timeout: 8000 },
-      );
+      const url = `https://api.telegram.org/bot${this.token}/setMyCommands`;
+      // Default (uz) — all users without a specific language
+      await axios.post(url, { commands: STORE_BOT_COMMANDS }, { timeout: 8000 });
+      // Explicit uz locale
+      await axios.post(url, { commands: STORE_BOT_COMMANDS, language_code: 'uz' }, { timeout: 8000 });
+      // Russian locale
+      await axios.post(url, { commands: STORE_BOT_COMMANDS_RU, language_code: 'ru' }, { timeout: 8000 });
+      this.logger.log('Store bot commands registered (uz + ru) ✅');
     } catch (e: any) {
       this.logger.error(`registerCommands error: ${e?.message}`);
     }
