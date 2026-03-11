@@ -53,6 +53,9 @@ export class OrderController {
   @ApiBearerAuth('JWT')
   @ApiOperation({ summary: 'Yangi buyurtma yaratish (USER)' })
   create(@Body() data: CreateOrderDto, @Request() req: any) {
+    // Derive ORDER_SOURCE from verified JWT claim — cannot be spoofed via DTO
+    const tokenSource: string | undefined = req['tokenSource'];
+    if (tokenSource === 'STORE_BOT') data.source = 'STORE_BOT' as any;
     return this.orderService.create(data, req['user']?.id);
   }
 

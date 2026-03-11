@@ -22,7 +22,7 @@ export function RolesGuardFactory(roles: Role[]): any {
       const token = request.headers.authorization?.split(' ')[1];
       if (!token) throw new UnauthorizedException();
 
-      const payload: { role: Role; user_id: number } =
+      const payload: { role: Role; user_id: number; source?: string } =
         await this.jwtService.verifyAsync(token);
 
       const isAllowed = roles.includes(payload.role);
@@ -35,6 +35,8 @@ export function RolesGuardFactory(roles: Role[]): any {
       if (!user) throw new UnauthorizedException(`${payload.role.toLowerCase()} not found`);
 
       request['user'] = user;
+      // Expose JWT source so controllers can use it (e.g. ORDER_SOURCE derivation)
+      if (payload.source) request['tokenSource'] = payload.source;
       return true;
     }
   }

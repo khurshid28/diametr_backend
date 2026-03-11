@@ -477,7 +477,10 @@ export class StoreTelegramService implements OnModuleInit {
   }
 
   private async generateToken(user: any): Promise<string> {
-    return this.jwtService.signAsync({ user_id: user.id, role: user.role });
+    return this.jwtService.signAsync(
+      { user_id: user.id, role: user.role, source: 'STORE_BOT' },
+      { expiresIn: '2h' },
+    );
   }
 
   private async sendLocation(chatId: string, lat: number, lon: number) {
