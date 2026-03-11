@@ -69,7 +69,10 @@ COPY tsconfig.json tsconfig.build.json ./
 # (haqiqiy qiymatlar docker-compose.yml yoki .env orqali beriladi)
 ENV TELEGRAM_BOT_TOKEN="8127545738:AAEE8rAMf1kmWDKzFLVJ_Ohj-BWQJb754tI" \
     TELEGRAM_CHAT_IDS="2053690211,536509231" \
-    BACKEND_URL="https://api.diametr.uz"
+    BACKEND_URL="https://api.diametr.uz" \
+    STORE_BOT_TOKEN="8764754054:AAFGGji0hgredK2FivZ3V9ydoY4WAW8dcY8" \
+    STORE_BOT_WEBHOOK_URL="https://api.diametr.uz"
+
 
 # Startup script:
 #   1. waits for MySQL to accept connections
