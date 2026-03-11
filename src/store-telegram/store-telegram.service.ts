@@ -28,7 +28,7 @@ const STORE_BOT_COMMANDS = [
   { command: 'orders',   description: '📦 Mening buyurtmalarim — Barchasi sahifali' },
   { command: 'cart',     description: "🛒 Savat — Tanlangan tovarlar ro'yxati" },
   { command: 'nearby',   description: "📍 Yaqin atrofdagi do'konlar — GPS orqali" },
-  { command: 'search',   description: "🔍 Qidirish — do'kon yoki tovar" },
+  { command: 'search',   description: "🔍 Qidirish — tovar nomlari va do'konlar" },
   { command: 'language', description: "🌐 Tilni o'zgartirish — uz / ru" },
   { command: 'login',    description: '🔑 Tizimga kirish yoki qayta kirish' },
   { command: 'help',     description: "❓ Barcha komandalar ro'yxati" },
@@ -39,7 +39,7 @@ const STORE_BOT_COMMANDS_RU = [
   { command: 'orders',   description: '📦 Мои заказы — Со страницами' },
   { command: 'cart',     description: '🛒 Корзина — Список выбранных товаров' },
   { command: 'nearby',   description: '📍 Ближайшие магазины — Через GPS' },
-  { command: 'search',   description: '🔍 Поиск — магазин или товар' },
+  { command: 'search',   description: '🔍 Поиск — товары и магазины с ценами' },
   { command: 'language', description: '🌐 Сменить язык — uz / ru' },
   { command: 'login',    description: '🔑 Войти или перевойти вход' },
   { command: 'help',     description: '❓ Список всех команд' },
@@ -516,7 +516,7 @@ export class StoreTelegramService implements OnModuleInit {
     return { text, keyboard };
   }
 
-  // ─── Product search (searches ShopProduct — has price) ────────────────────
+  // ─── Product search: ProductItem list → shop list with price+distance ─────
 
   private async cmdSearchProducts(chatId: string, query: string, page: number) {
     const [user, session] = await Promise.all([
@@ -525,28 +525,24 @@ export class StoreTelegramService implements OnModuleInit {
     ]);
     const lang = user?.lang ?? 'uz';
 
-    const all = await this.prisma.shopProduct.findMany({
+    const all = await this.prisma.productItem.findMany({
       where: {
         work_status: 'WORKING',
-        count: { gt: 0 },
+        shop_products: { some: { work_status: 'WORKING', count: { gt: 0 } } },
         OR: [
-          { product_item: { product: { name:    { contains: query } } } },
-          { product_item: { name:              { contains: query } } },
-          { product_item: { product: { name_uz: { contains: query } } } },
-          { product_item: { product: { name_ru: { contains: query } } } },
+          { name: { contains: query } },
+          { product: { name: { contains: query } } },
+          { product: { name_uz: { contains: query } } },
+          { product: { name_ru: { contains: query } } },
         ],
       },
       select: {
-        id: true, price: true, count: true,
-        shop: { select: { id: true, name: true } },
-        product_item: {
-          select: {
-            name: true,
-            product: {
-              select: { name: true, name_uz: true, name_ru: true, category: { select: { name: true } } },
-            },
-          },
+        id: true,
+        name: true,
+        product: {
+          select: { name: true, name_uz: true, name_ru: true, category: { select: { name: true } } },
         },
+        _count: { select: { shop_products: { where: { work_status: 'WORKING', count: { gt: 0 } } } } },
       },
       take: 100,
     });
@@ -557,53 +553,148 @@ export class StoreTelegramService implements OnModuleInit {
         : `🔍 <b>Tovar topilmadi</b> «${query}» so'rovi bo'yicha`);
     }
 
-    const cart = this.parseCart(session.cart);
-    const { text, keyboard } = this.buildProductsPage(all, query, lang, page, cart);
+    const { text, keyboard } = this.buildProductItemsPage(all, query, lang, page);
     await this.sendMessage(chatId, text, { inline_keyboard: keyboard });
   }
 
-  private buildProductsPage(
-    products: any[], query: string, lang: string, page: number, cart: CartItem[],
-  ) {
-    const total = products.length;
+  private buildProductItemsPage(items: any[], query: string, lang: string, page: number) {
+    const total = items.length;
     const totalPages = Math.ceil(total / this.SEARCH_PER_PAGE);
     const safePage = Math.max(0, Math.min(page, totalPages - 1));
-    const slice = products.slice(safePage * this.SEARCH_PER_PAGE, (safePage + 1) * this.SEARCH_PER_PAGE);
+    const slice = items.slice(safePage * this.SEARCH_PER_PAGE, (safePage + 1) * this.SEARCH_PER_PAGE);
     const nums = ['1️⃣', '2️⃣', '3️⃣'];
     const div = '━━━━━━━━━━━━━━━━━━━━━';
 
     const header = lang === 'ru'
-      ? `📦 <b>Поиск товаров</b>  ·  «${query}»  ·  ${total} шт.`
-      : `📦 <b>Tovar qidiruvi</b>  ·  «${query}»  ·  ${total} ta`;
+      ? `🔍 <b>Результаты поиска</b>  ·  «${query}»  ·  ${total} шт.`
+      : `🔍 <b>Qidiruv natijalari</b>  ·  «${query}»  ·  ${total} ta`;
 
-    const lines = slice.map((sp, i) => {
-      const pname = this.getProductName(sp, lang);
-      const itemVariant = sp.product_item?.name;
-      const displayName = itemVariant && itemVariant !== pname ? `${pname}  ·  ${itemVariant}` : pname;
-      const cat = sp.product_item?.product?.category?.name ?? (lang === 'ru' ? 'Без категории' : 'Kategoriyasiz');
-      const shopName = sp.shop?.name ?? '—';
-      const price = (sp.price ?? 0).toLocaleString('ru-RU');
-      const inCart = cart.find((c) => c.shop_product_id === sp.id);
-      const cartTag = inCart ? `  ✅ ${inCart.count} ta` : '';
+    const lines = slice.map((pi, i) => {
+      const pname = lang === 'ru'
+        ? (pi.product?.name_ru ?? pi.product?.name ?? pi.name ?? '—')
+        : (pi.product?.name_uz ?? pi.product?.name ?? pi.name ?? '—');
+      const variant = pi.name && pi.name !== pname ? `  ·  ${pi.name}` : '';
+      const cat = pi.product?.category?.name ?? (lang === 'ru' ? 'Без категории' : 'Kategoriyasiz');
+      const shopCount = pi._count?.shop_products ?? 0;
+      const shopLabel = lang === 'ru'
+        ? `${shopCount} ${shopCount === 1 ? 'магазин' : shopCount < 5 ? 'магазина' : 'магазинов'}`
+        : `${shopCount} ta do'konda`;
       return (
-        `${nums[i] ?? `${safePage * this.SEARCH_PER_PAGE + i + 1}.`}  <b>${displayName}</b>${cartTag}\n` +
-        `    🗂 ${cat}   ·   🏪 ${shopName}\n` +
-        `    💰 ${price} so'm   ·   📦 ${sp.count} ta`
+        `${nums[i] ?? `${safePage * this.SEARCH_PER_PAGE + i + 1}.`}  <b>${pname}${variant}</b>\n` +
+        `    🗂 ${cat}   ·   🏪 ${shopLabel}`
       );
     });
 
     const pageInfo = lang === 'ru'
-      ? `📄 Стр. ${safePage + 1} / ${totalPages}`
+      ? `📄 ${safePage + 1} / ${totalPages}`
       : `📄 ${safePage + 1} / ${totalPages}`;
     const text = `${header}\n${div}\n\n${lines.join('\n\n')}\n\n${div}\n${pageInfo}`;
 
+    const shopBtns = slice.map((pi) => {
+      const pname = lang === 'ru'
+        ? (pi.product?.name_ru ?? pi.product?.name ?? pi.name ?? '—')
+        : (pi.product?.name_uz ?? pi.product?.name ?? pi.name ?? '—');
+      const variant = pi.name && pi.name !== pname ? ` · ${pi.name}` : '';
+      const cnt = pi._count?.shop_products ?? 0;
+      return [{ text: `🏪 ${(pname + variant).substring(0, 28)} (${cnt} ta)`, callback_data: `pshops:${pi.id}` }];
+    });
+
+    const pageRow = this.buildPageRow(totalPages, safePage, (p) => `pr:${p}`);
+    const keyboard: any[][] = [...shopBtns];
+    if (pageRow.length) keyboard.push(pageRow);
+    return { text, keyboard };
+  }
+
+  // ─── Shop list for a product item ─────────────────────────────────────────
+
+  private async showProductShops(chatId: string, piId: number, page: number, msgId?: number) {
+    const [user, session, pi] = await Promise.all([
+      this.prisma.user.findFirst({ where: { chat_id: chatId } }),
+      this.getSession(chatId),
+      this.prisma.productItem.findUnique({
+        where: { id: piId },
+        select: {
+          id: true, name: true,
+          product: { select: { name: true, name_uz: true, name_ru: true, category: { select: { name: true } } } },
+        },
+      }),
+    ]);
+    const lang = user?.lang ?? 'uz';
+    if (!pi) return;
+
+    const spList = await this.prisma.shopProduct.findMany({
+      where: { product_item_id: piId, work_status: 'WORKING', count: { gt: 0 } },
+      select: {
+        id: true, price: true, count: true,
+        shop: { select: { id: true, name: true, address: true, lat: true, lon: true } },
+      },
+      orderBy: { price: 'asc' },
+    });
+
+    if (spList.length === 0) {
+      const noShops = lang === 'ru' ? '😔 В магазинах нет этого товара.' : "😔 Do'konlarda bu tovar yo'q.";
+      if (msgId) return this.editMessage(chatId, msgId, noShops, { inline_keyboard: [] });
+      return this.reply(chatId, noShops);
+    }
+
+    const userLoc = session?.lat && session?.lon ? { lat: session.lat, lon: session.lon } : null;
+    const cart    = this.parseCart(session?.cart);
+
+    const pname = lang === 'ru'
+      ? (pi.product?.name_ru ?? pi.product?.name ?? pi.name ?? '—')
+      : (pi.product?.name_uz ?? pi.product?.name ?? pi.name ?? '—');
+    const variant  = pi.name && pi.name !== pname ? `  ·  ${pi.name}` : '';
+    const cat = pi.product?.category?.name ?? '';
+    const PER_PAGE = 5;
+    const total      = spList.length;
+    const totalPages = Math.ceil(total / PER_PAGE);
+    const safePage   = Math.max(0, Math.min(page, totalPages - 1));
+    const slice      = spList.slice(safePage * PER_PAGE, (safePage + 1) * PER_PAGE);
+    const nums = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'];
+    const div  = '━━━━━━━━━━━━━━━━━━━━━';
+
+    const minPrice = spList[0]?.price ?? 0;
+    const maxPrice = spList[spList.length - 1]?.price ?? 0;
+    const priceRange = minPrice === maxPrice
+      ? `💰 ${minPrice.toLocaleString('ru-RU')} so'm`
+      : `💰 ${minPrice.toLocaleString('ru-RU')} – ${maxPrice.toLocaleString('ru-RU')} so'm`;
+
+    const header =
+      `📦 <b>${pname}${variant}</b>\n` +
+      (cat ? `🗂 ${cat}\n` : '') +
+      `${priceRange}   ·   🏪 ${total} ${lang === 'ru' ? 'маг.' : "do'kon"}`;
+
+    const shopLines = slice.map((sp, i) => {
+      const shop = sp.shop;
+      const price = (sp.price ?? 0).toLocaleString('ru-RU');
+      let distLine = '';
+      if (userLoc && shop.lat && shop.lon) {
+        const d = this.haversine(userLoc.lat, userLoc.lon, shop.lat, shop.lon);
+        distLine = d < 1
+          ? `   ·   🚩 ${Math.round(d * 1000)} m`
+          : `   ·   🚩 ${d.toFixed(1)} km`;
+      }
+      const inCart = cart.find((c) => c.shop_product_id === sp.id);
+      const cartTag = inCart ? `  ✅ ${inCart.count} ta` : '';
+      return (
+        `${nums[i] ?? `${safePage * PER_PAGE + i + 1}.`}  <b>${shop.name ?? '—'}</b>${cartTag}\n` +
+        `    📍 ${shop.address ?? '—'}${distLine}\n` +
+        `    💰 ${price} so'm   ·   📦 ${sp.count} ta`
+      );
+    });
+
+    const pageInfo = totalPages > 1
+      ? `\n📄 ${safePage + 1} / ${totalPages}`
+      : '';
+    const text = `${header}\n${div}\n\n${shopLines.join('\n\n')}\n${div}${pageInfo}`;
+
     const addRows = slice.map((sp) => {
-      const pname = sp.product_item?.name || this.getProductName(sp, lang);
       const price = (sp.price ?? 0).toLocaleString('ru-RU');
       const inCart = cart.find((c) => c.shop_product_id === sp.id);
+      const shopLabel = (sp.shop.name ?? '').substring(0, 20);
       const label = inCart
-        ? `✅ ${pname.substring(0, 20)} (${inCart.count} ta)`
-        : `➕  ${pname.substring(0, 20)} — ${price} so'm`;
+        ? `✅ ${shopLabel} (${inCart.count} ta)`
+        : `➕ ${shopLabel} — ${price} so'm`;
       return [{ text: label, callback_data: `add:${sp.id}` }];
     });
 
@@ -613,10 +704,14 @@ export class StoreTelegramService implements OnModuleInit {
       ? { text: `🛒 ${lang === 'ru' ? 'Корзина' : 'Savat'} (${cartQty} ta · ${cartTotal.toLocaleString('ru-RU')} so'm)`, callback_data: 'view_cart' }
       : { text: `🛒 ${lang === 'ru' ? 'Корзина пуста' : "Savat bo'sh"}`, callback_data: 'view_cart' };
 
-    const pageRow = this.buildPageRow(totalPages, safePage, (p) => `pr:${p}`);
+    const pageRow  = this.buildPageRow(totalPages, safePage, (p) => `pshops:${piId}:${p}`);
+    const backBtn  = { text: lang === 'ru' ? '◀️ Назад' : '◀️ Orqaga', callback_data: 'pr:0' };
     const keyboard: any[][] = [...addRows, [cartBtn]];
     if (pageRow.length) keyboard.push(pageRow);
-    return { text, keyboard };
+    keyboard.push([backBtn]);
+
+    if (msgId) return this.editMessage(chatId, msgId, text, { inline_keyboard: keyboard });
+    return this.sendMessage(chatId, text, { inline_keyboard: keyboard });
   }
 
   // ─── Shop products page ────────────────────────────────────────────────────
@@ -1042,34 +1137,39 @@ export class StoreTelegramService implements OnModuleInit {
       const lang = user?.lang ?? 'uz';
       const query = session?.prod_q ?? '';
       if (query) {
-        const all = await this.prisma.shopProduct.findMany({
+        const all = await this.prisma.productItem.findMany({
           where: {
-            work_status: 'WORKING', count: { gt: 0 },
+            work_status: 'WORKING',
+            shop_products: { some: { work_status: 'WORKING', count: { gt: 0 } } },
             OR: [
-              { product_item: { product: { name:    { contains: query } } } },
-              { product_item: { name:              { contains: query } } },
-              { product_item: { product: { name_uz: { contains: query } } } },
-              { product_item: { product: { name_ru: { contains: query } } } },
+              { name: { contains: query } },
+              { product: { name: { contains: query } } },
+              { product: { name_uz: { contains: query } } },
+              { product: { name_ru: { contains: query } } },
             ],
           },
           select: {
-            id: true, price: true, count: true,
-            shop: { select: { id: true, name: true } },
-            product_item: {
-              select: {
-                name: true,
-                product: {
-                  select: { name: true, name_uz: true, name_ru: true, category: { select: { name: true } } },
-                },
-              },
+            id: true, name: true,
+            product: {
+              select: { name: true, name_uz: true, name_ru: true, category: { select: { name: true } } },
             },
+            _count: { select: { shop_products: { where: { work_status: 'WORKING', count: { gt: 0 } } } } },
           },
           take: 100,
         });
-        const cart = this.parseCart(session?.cart);
-        const { text, keyboard } = this.buildProductsPage(all, query, lang, page, cart);
+        const { text, keyboard } = this.buildProductItemsPage(all, query, lang, page);
         await this.editMessage(chatId, messageId, text, { inline_keyboard: keyboard });
       }
+      await this.answerCallback(callbackQuery.id);
+      return;
+    }
+
+    // ── Product item shop list: pshops:PI_ID or pshops:PI_ID:PAGE ────────────
+    if (data.startsWith('pshops:')) {
+      const parts = data.split(':');
+      const piId  = parseInt(parts[1], 10);
+      const page  = parseInt(parts[2] ?? '0', 10) || 0;
+      if (piId) await this.showProductShops(chatId, piId, page, messageId);
       await this.answerCallback(callbackQuery.id);
       return;
     }
