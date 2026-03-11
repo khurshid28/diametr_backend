@@ -25,7 +25,7 @@ const STORE_BOT_COMMANDS_RU = [
 ];
 
 type UserState = {
-  state: 'idle' | 'waiting_code';
+  state: 'idle' | 'waiting_code' | 'waiting_search_shop' | 'waiting_search_product';
   smsId?: string;
   phone?: string;
 };
@@ -129,18 +129,22 @@ export class StoreTelegramService implements OnModuleInit {
       await this.handleSmsCode(chatId, text);
       return;
     }
+    if (state?.state === 'waiting_search_shop' && text && !text.startsWith('/')) {
+      this.userStates.delete(chatId);
+      await this.cmdSearchShops(chatId, text.trim(), 0);
+      return;
+    }
+    if (state?.state === 'waiting_search_product' && text && !text.startsWith('/')) {
+      this.userStates.delete(chatId);
+      await this.cmdSearchProducts(chatId, text.trim(), 0);
+      return;
+    }
 
     if (text.startsWith('/')) {
       const cmd = text.split(' ')[0].split('@')[0].toLowerCase();
       await this.handleCommand(cmd, chatId, message.from);
       return;
     }
-
-    // Free-text search — "qidirish do'kon: X" or "qidirish tovar: X"
-    const shopMatch = text.match(/^(?:qidirish\s+do[`']?kon|do[`']?kon\s+qidirish|поиск\s+магазин)[:\s]\s*(.+)/i);
-    const prodMatch = text.match(/^(?:qidirish\s+tovar|tovar\s+qidirish|поиск\s+товар)[:\s]\s*(.+)/i);
-    if (shopMatch) { await this.cmdSearchShops(chatId, shopMatch[1].trim(), 0); return; }
-    if (prodMatch) { await this.cmdSearchProducts(chatId, prodMatch[1].trim(), 0); return; }
   }
 
   private async handleCommand(cmd: string, chatId: string, from?: any) {
@@ -325,10 +329,10 @@ export class StoreTelegramService implements OnModuleInit {
     const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
     const lang = user?.lang ?? 'uz';
     const text = lang === 'ru'
-      ? '📍 <b>Поделитесь своим местоположением</b>, чтобы найти ближайшие магазины:'
-      : '📍 <b>Joylashuvingizni ulashing</b>, yaqin do\'konlarni topish uchun:';
+      ? '📍 <b>Поделитесь местоположением</b>, чтобы найти ближайшие магазины:\n\nГеолокацию отправить ↓'
+      : '📍 <b>Joylashuvingizni ulashing</b>, yaqin do\'konlarni topish uchun:\n\nQuyidagi tugmani bosing ↓';
     await this.sendMessage(chatId, text, {
-      keyboard: [[{ text: '📍 Joylashuvni ulashish', request_location: true }]],
+      keyboard: [[{ text: '📍 ' + (lang === 'ru' ? 'Отправить геолокацию' : 'Joylashuvni yuborish'), request_location: true }]],
       resize_keyboard: true,
       one_time_keyboard: true,
     });
@@ -338,6 +342,9 @@ export class StoreTelegramService implements OnModuleInit {
     const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
     const lang = user?.lang ?? 'uz';
     this.userLocations.set(chatId, { lat: location.latitude, lon: location.longitude });
+    // Remove reply keyboard first
+    const loadingText = lang === 'ru' ? '⏳ Ищу ближайшие магазины...' : '⏳ Yaqin do\'konlar qidirilmoqda...';
+    await this.sendMessage(chatId, loadingText, { remove_keyboard: true });
     const { text, keyboard } = await this.buildNearbyContent(location.latitude, location.longitude, 0, lang);
     await this.sendMessage(chatId, text, { inline_keyboard: keyboard });
   }
@@ -398,15 +405,14 @@ export class StoreTelegramService implements OnModuleInit {
     const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
     const lang = user?.lang ?? 'uz';
     const text = lang === 'ru'
-      ? `🔍 <b>Как искать:</b>\n\n` +
-        `🏪 <b>Поиск магазина:</b>\n<code>qidirish do'kon: Novostroy</code>\n\n` +
-        `📦 <b>Поиск товара:</b>\n<code>qidirish tovar: sement</code>\n\n` +
-        `📍 Ближайшие магазины: /nearby`
-      : `🔍 <b>Qidirish yo'riqnomasi:</b>\n\n` +
-        `🏪 <b>Do'kon qidirish:</b>\n<code>qidirish do'kon: Novostroy</code>\n\n` +
-        `📦 <b>Tovar qidirish:</b>\n<code>qidirish tovar: sement</code>\n\n` +
-        `📍 Yaqin do'konlar: /nearby`;
-    await this.reply(chatId, text);
+      ? '🔍 <b>Что хотите найти?</b>'
+      : '🔍 <b>Nima qidirmoqchisiz?</b>';
+    await this.sendMessage(chatId, text, {
+      inline_keyboard: [[
+        { text: '🏪 ' + (lang === 'ru' ? 'Магазин' : 'Do\'kon'), callback_data: 'search_shop' },
+        { text: '📦 ' + (lang === 'ru' ? 'Товар' : 'Tovar'), callback_data: 'search_prod' },
+      ]],
+    });
   }
 
   private async cmdSearchShops(chatId: string, query: string, page: number) {
@@ -681,6 +687,20 @@ export class StoreTelegramService implements OnModuleInit {
         const { text, keyboard } = await this.buildNearbyContent(loc.lat, loc.lon, page, lang);
         await this.editMessage(chatId, messageId, text, { inline_keyboard: keyboard });
       }
+      await this.answerCallback(callbackQuery.id);
+      return;
+    }
+
+    // Search type selection
+    if (data === 'search_shop' || data === 'search_prod') {
+      const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
+      const lang = user?.lang ?? 'uz';
+      const isShop = data === 'search_shop';
+      this.userStates.set(chatId, { state: isShop ? 'waiting_search_shop' : 'waiting_search_product' });
+      const prompt = isShop
+        ? (lang === 'ru' ? '🏪 Введите название магазина:' : '🏪 Do\'kon nomini yozing:')
+        : (lang === 'ru' ? '📦 Введите название товара:' : '📦 Tovar nomini yozing:');
+      await this.editMessage(chatId, messageId, prompt, { inline_keyboard: [] });
       await this.answerCallback(callbackQuery.id);
       return;
     }
