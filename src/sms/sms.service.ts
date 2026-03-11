@@ -22,10 +22,16 @@ export class SmsService {
   async send(data: SmsSendDto) {
     this.logger.log('send');
 
-    let code = generatePassword({ length: 6 });
-    // let code = '666666'; // test rejimi
+    // let code = generatePassword({ length: 6 });
+    let code = '666666'; // test rejimi
 
     try {
+      // Eski ishlatilmagan verifylarni bekor qilish
+      await this.prisma.verify.updateMany({
+        where: { phone: data.phone, used: false },
+        data: { used: true },
+      });
+
       let verify = await this.prisma.verify.create({
         data: {
           phone: data.phone,
