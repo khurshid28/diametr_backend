@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import { ConsoleLogger, ValidationPipe } from '@nestjs/common';
+import { ConsoleLogger, Logger, ValidationPipe } from '@nestjs/common';
 import { GlobalExceptionFilter } from './_middlewares/error-handler';
 import { join } from 'path';
 import { ResponseLoggingInterceptor } from './_middlewares/reponse-logging-handler';
@@ -99,8 +99,8 @@ async function main() {
   const port = process.env.PORT ?? 8888;
   await app.listen(port, '0.0.0.0');
 
-  console.log(`\n🚀  Server running on   http://localhost:${port}/api/v1`);
-  console.log(`📖  Swagger docs at     http://localhost:${port}/docs`);
-  console.log(`📖  Swagger JSON at     http://localhost:${port}/docs-json\n`);
+  const logger = new Logger('Bootstrap');
+  logger.log(`🚀  Server started on   http://localhost:${port}/api/v1`);
+  logger.log(`📖  Swagger docs at     http://localhost:${port}/docs`);
 }
 main();

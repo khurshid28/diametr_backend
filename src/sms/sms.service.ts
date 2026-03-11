@@ -22,8 +22,8 @@ export class SmsService {
   async send(data: SmsSendDto) {
     this.logger.log('send');
 
-    // let code = generatePassword({ length: 6 });
-    let code = '666666';
+    let code = generatePassword({ length: 6 });
+    // let code = '666666'; // test rejimi
 
     try {
       let verify = await this.prisma.verify.create({
