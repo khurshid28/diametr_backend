@@ -1534,6 +1534,15 @@ export class StoreTelegramService implements OnModuleInit {
         ? '✅ Язык изменён на <b>Русский</b> 🇷🇺'
         : "✅ Til <b>O'zbek</b> ga o'zgartirildi 🇺🇿";
       await this.reply(chatId, text);
+      // Update bot menu commands for this specific chat
+      const cmds = lang === 'ru' ? STORE_BOT_COMMANDS_RU : STORE_BOT_COMMANDS;
+      try {
+        await axios.post(
+          `https://api.telegram.org/bot${this.token}/setMyCommands`,
+          { commands: cmds, scope: { type: 'chat', chat_id: chatId } },
+          { timeout: 8000 },
+        );
+      } catch {}
       await this.answerCallback(callbackQuery.id);
       return;
     }
