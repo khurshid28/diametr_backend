@@ -163,7 +163,11 @@ export class StoreTelegramService implements OnModuleInit {
 
     if (message.location) {
       const session = await this.getSession(chatId);
-      if (session?.state === 'waiting_checkout_address') {
+      const chk: CheckoutCtx = JSON.parse(session?.chk ?? '{}');
+      const isCheckoutLoc =
+        session?.state === 'waiting_checkout_address' ||
+        (chk.delivery_type === 'YANDEX' && !chk.address && !chk.payment_type);
+      if (isCheckoutLoc) {
         await this.handleCheckoutLocationAddress(chatId, message.location);
       } else {
         await this.handleLocation(chatId, message.location);
@@ -1054,9 +1058,8 @@ export class StoreTelegramService implements OnModuleInit {
     const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
     const lang = user?.lang ?? 'uz';
     const chk: CheckoutCtx = { delivery_type: deliveryType };
-    await this.upsertSession(chatId, { chk: JSON.stringify(chk) });
     if (deliveryType === 'YANDEX') {
-      await this.upsertSession(chatId, { state: 'waiting_checkout_address' });
+      await this.upsertSession(chatId, { chk: JSON.stringify(chk), state: 'waiting_checkout_address' });
       const text = lang === 'ru'
         ? "📍 Введите адрес доставки или отправьте геолокацию:\n\n<i>Например: Шайхантауский р-н, ул. Навруз, 12</i>"
         : "📍 Yetkazib berish manzilingizni yozing yoki joylashuvingizni yuboring:\n\n<i>Masalan: Shayxontohur, Navruz ko'chasi 12</i>";
