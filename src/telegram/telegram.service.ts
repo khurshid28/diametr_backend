@@ -377,9 +377,17 @@ export class TelegramService implements OnModuleInit {
         ? `\n🏷 Chegirma: -${order.discount_amount.toLocaleString()} so'm (${order.discount_percent}%)`
         : '';
 
+    const sourceLabel: Record<string, string> = {
+      MOBILE:    '📱 Mobil ilova',
+      SITE:      '🌐 Sayt',
+      STORE_BOT: '🤖 Telegram bot',
+    };
+    const source = sourceLabel[order.source ?? ''] ?? order.source ?? '—';
+
     const msg =
       `🛍 <b>Yangi buyurtma #${order.id}</b>\n\n` +
       `🏪 Do'kon: ${order.shop?.name ?? '—'}\n` +
+      `📡 Manba: ${source}\n` +
       `📍 Manzil: ${order.address ?? '—'}\n` +
       `💳 To'lov: ${this.payLabel(order.payment_type)}\n` +
       `🚚 Yetkazish: ${this.deliveryLabel(order.delivery_type)}\n\n` +
