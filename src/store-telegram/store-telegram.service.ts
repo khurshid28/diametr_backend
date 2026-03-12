@@ -1079,12 +1079,11 @@ export class StoreTelegramService implements OnModuleInit {
       inline_keyboard: [
         [
           { text: '💵 ' + (lang === 'ru' ? 'Наличные' : 'Naqd pul'), callback_data: 'chkpay:CASH' },
-          { text: '💳 ' + (lang === 'ru' ? 'Карта'    : 'Karta'),    callback_data: 'chkpay:CARD' },
         ],
         [
-          { text: '📱 Click',  callback_data: 'chkpay:CLICK' },
-          { text: '📱 Payme',  callback_data: 'chkpay:PAYME' },
-          { text: '📱 Uzum',   callback_data: 'chkpay:UZUM'  },
+          { text: '📱 Click', callback_data: 'chkpay:CLICK' },
+          { text: '📱 Payme', callback_data: 'chkpay:PAYME' },
+          { text: '📱 Uzum',  callback_data: 'chkpay:UZUM'  },
         ],
       ],
     };
