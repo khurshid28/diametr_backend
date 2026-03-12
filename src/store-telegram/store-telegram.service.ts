@@ -53,7 +53,7 @@ export class StoreTelegramService implements OnModuleInit {
   private readonly storeUrl = 'https://diametr.uz/store';
   private readonly ORDERS_PER_PAGE = 3;
   private readonly SEARCH_PER_PAGE = 3;
-  private readonly ITEMS_PER_PHOTO_PAGE = 4;
+  private readonly ITEMS_PER_PHOTO_PAGE = 6;
   private readonly IMG_BASE = 'https://diametr.uz';
 
   constructor(
