@@ -909,7 +909,10 @@ export class StoreTelegramService implements OnModuleInit {
     const [user, session, shop] = await Promise.all([
       this.prisma.user.findFirst({ where: { chat_id: chatId } }),
       this.getSession(chatId),
-      this.prisma.shop.findUnique({ where: { id: shopId }, select: { id: true, name: true } }),
+      this.prisma.shop.findUnique({
+        where: { id: shopId },
+        select: { id: true, name: true, image: true, address: true, lat: true, lon: true },
+      }),
     ]);
     const lang = user?.lang ?? 'uz';
     if (!shop) return;
@@ -946,9 +949,10 @@ export class StoreTelegramService implements OnModuleInit {
     const nums = ['1️⃣', '2️⃣', '3️⃣'];
     const div = '━━━━━━━━━━━━━━━━━━━━━';
 
+    const addressLine = shop.address ? `\n📍 ${shop.address}` : '';
     const header = lang === 'ru'
-      ? `🏪 <b>${shop.name}</b>  ·  ${total} товаров`
-      : `🏪 <b>${shop.name}</b>  ·  ${total} tovar`;
+      ? `🏪 <b>${shop.name}</b>  ·  ${total} товаров${addressLine}`
+      : `🏪 <b>${shop.name}</b>  ·  ${total} tovar${addressLine}`;
 
     const lines = slice.map((sp, i) => {
       const pname = this.getProductName(sp, lang);
@@ -989,8 +993,20 @@ export class StoreTelegramService implements OnModuleInit {
     const keyboard: any[][] = [...addRows, [cartBtn]];
     if (pageRow.length) keyboard.push(pageRow);
 
-    if (msgId) return this.editMessage(chatId, msgId, text, { inline_keyboard: keyboard });
-    return this.sendMessage(chatId, text, { inline_keyboard: keyboard });
+    const shopPhoto = this.imgUrl(shop.image);
+    if (msgId) {
+      const result = shopPhoto
+        ? this.editTgMedia(chatId, msgId, shopPhoto, text, keyboard)
+        : this.editMessage(chatId, msgId, text, { inline_keyboard: keyboard });
+      return result;
+    }
+    // First open: send product list then location pin
+    if (shopPhoto) {
+      await this.sendTgPhoto(chatId, shopPhoto, text, { inline_keyboard: keyboard });
+    } else {
+      await this.sendMessage(chatId, text, { inline_keyboard: keyboard });
+    }
+    if (shop.lat && shop.lon) await this.sendLocation(chatId, shop.lat, shop.lon);
   }
 
   // ─── Checkout flow ─────────────────────────────────────────────────────────

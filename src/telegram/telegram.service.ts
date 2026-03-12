@@ -388,6 +388,23 @@ export class TelegramService implements OnModuleInit {
       `💰 <b>Jami: ${(order.amount ?? 0).toLocaleString()} so'm</b>`;
 
     await this.send(msg);
+    const lat = order.shop?.lat;
+    const lon = order.shop?.lon;
+    if (lat && lon) {
+      await Promise.allSettled(
+        this.chatIds.map((id) =>
+          axios
+            .post(
+              `https://api.telegram.org/bot${this.token}/sendLocation`,
+              { chat_id: id, latitude: lat, longitude: lon },
+              { timeout: 8000 },
+            )
+            .catch((e: any) =>
+              this.logger.error(`Location send error (chat ${id}): ${e?.message}`),
+            ),
+        ),
+      );
+    }
   }
 
   async notifyOrderFinished(orderId: number) {
