@@ -474,7 +474,7 @@ export class StoreTelegramService implements OnModuleInit {
         },
       },
       select: {
-        id: true, name: true, name_uz: true, name_ru: true,
+        id: true, name: true, name_uz: true, name_ru: true, image: true,
         _count: { select: { products: { where: { work_status: 'WORKING' } } } },
       },
       orderBy: { name: 'asc' },
@@ -521,8 +521,15 @@ export class StoreTelegramService implements OnModuleInit {
       { text: lang === 'ru' ? '🏪 Магазин' : "🏪 Do'kon", callback_data: 'search_shop' },
     ]);
 
-    if (msgId) return this.editMessage(chatId, msgId, text, { inline_keyboard: keyboard });
-    return this.sendMessage(chatId, text, { inline_keyboard: keyboard });
+    const firstPhoto = this.imgUrl(slice.find((c) => c.image)?.image);
+    if (msgId) {
+      return firstPhoto
+        ? this.editTgMedia(chatId, msgId, firstPhoto, text, keyboard)
+        : this.editMessage(chatId, msgId, text, { inline_keyboard: keyboard });
+    }
+    return firstPhoto
+      ? this.sendTgPhoto(chatId, firstPhoto, text, { inline_keyboard: keyboard })
+      : this.sendMessage(chatId, text, { inline_keyboard: keyboard });
   }
 
   // ─── Product items in a category ─────────────────────────────────────────
@@ -543,10 +550,10 @@ export class StoreTelegramService implements OnModuleInit {
           product: { category_id: catId },
         },
         select: {
-          id: true, name: true,
+          id: true, name: true, image: true,
           product: {
             select: {
-              name: true, name_uz: true, name_ru: true,
+              name: true, name_uz: true, name_ru: true, image: true,
               category: { select: { name: true, name_uz: true, name_ru: true } },
             },
           },
@@ -628,8 +635,22 @@ export class StoreTelegramService implements OnModuleInit {
     if (pageRow.length) keyboard.push(pageRow);
     keyboard.push([{ text: lang === 'ru' ? '◀️ Каталог' : '◀️ Katalog', callback_data: 'cat:0' }]);
 
-    if (msgId) return this.editMessage(chatId, msgId, text, { inline_keyboard: keyboard });
-    return this.sendMessage(chatId, text, { inline_keyboard: keyboard });
+    const firstPhoto = (() => {
+      for (const pi of slice) {
+        const img = this.imgUrl(pi.image ?? pi.product?.image);
+        if (img) return img;
+      }
+      return null;
+    })();
+
+    if (msgId) {
+      return firstPhoto
+        ? this.editTgMedia(chatId, msgId, firstPhoto, text, keyboard)
+        : this.editMessage(chatId, msgId, text, { inline_keyboard: keyboard });
+    }
+    return firstPhoto
+      ? this.sendTgPhoto(chatId, firstPhoto, text, { inline_keyboard: keyboard })
+      : this.sendMessage(chatId, text, { inline_keyboard: keyboard });
   }
 
   // ─── Shop search ───────────────────────────────────────────────────────────
@@ -747,10 +768,10 @@ export class StoreTelegramService implements OnModuleInit {
         ],
       },
       select: {
-        id: true, name: true,
+        id: true, name: true, image: true,
         product: {
           select: {
-            name: true, name_uz: true, name_ru: true,
+            name: true, name_uz: true, name_ru: true, image: true,
             category: { select: { name: true, name_uz: true, name_ru: true } },
           },
         },
@@ -1619,6 +1640,24 @@ export class StoreTelegramService implements OnModuleInit {
       update: { state: 'idle', sms_id: null, phone: null },
       create: { chat_id: chatId, state: 'idle' },
     });
+  }
+
+  /** Edit a photo message (media + caption + keyboard); falls back to editMessageText if needed */
+  private async editTgMedia(chatId: string, msgId: number, photo: string, caption: string, keyboard: any[][]) {
+    try {
+      await axios.post(
+        `https://api.telegram.org/bot${this.token}/editMessageMedia`,
+        {
+          chat_id: chatId,
+          message_id: msgId,
+          media: { type: 'photo', media: photo, caption, parse_mode: 'HTML' },
+          reply_markup: { inline_keyboard: keyboard },
+        },
+        { timeout: 15000 },
+      );
+    } catch {
+      await this.editMessage(chatId, msgId, caption, { inline_keyboard: keyboard });
+    }
   }
 
   // ─── Image URL helper ──────────────────────────────────────────────────────
