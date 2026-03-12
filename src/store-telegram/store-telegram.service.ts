@@ -1081,9 +1081,9 @@ export class StoreTelegramService implements OnModuleInit {
           { text: '💵 ' + (lang === 'ru' ? 'Наличные' : 'Naqd pul'), callback_data: 'chkpay:CASH' },
         ],
         [
-          { text: '📱 Click', callback_data: 'chkpay:CLICK' },
-          { text: '📱 Payme', callback_data: 'chkpay:PAYME' },
-          { text: '📱 Uzum',  callback_data: 'chkpay:UZUM'  },
+          { text: '� Click', callback_data: 'chkpay:CLICK' },
+          { text: '🔴 Payme', callback_data: 'chkpay:PAYME' },
+          { text: '🟣 Uzum',  callback_data: 'chkpay:UZUM'  },
         ],
       ],
     };
