@@ -19,6 +19,8 @@ type CheckoutCtx = {
   delivery_type?: 'MARKET' | 'YANDEX';
   payment_type?: string;
   address?: string;
+  lat?: number;
+  lon?: number;
 };
 
 // ─── Bot commands ─────────────────────────────────────────────────────────────
@@ -160,7 +162,12 @@ export class StoreTelegramService implements OnModuleInit {
     }
 
     if (message.location) {
-      await this.handleLocation(chatId, message.location);
+      const session = await this.getSession(chatId);
+      if (session?.state === 'waiting_checkout_address') {
+        await this.handleCheckoutLocationAddress(chatId, message.location);
+      } else {
+        await this.handleLocation(chatId, message.location);
+      }
       return;
     }
 
@@ -1051,9 +1058,15 @@ export class StoreTelegramService implements OnModuleInit {
     if (deliveryType === 'YANDEX') {
       await this.upsertSession(chatId, { state: 'waiting_checkout_address' });
       const text = lang === 'ru'
-        ? "📍 Введите адрес доставки:\n\n<i>Например: Шайхантауский р-н, ул. Навруз, 12</i>"
-        : "📍 Yetkazib berish manzilingizni yozing:\n\n<i>Masalan: Shayxontohur, Navruz ko'chasi 12</i>";
-      return this.editMessage(chatId, msgId, text, { inline_keyboard: [] });
+        ? "📍 Введите адрес доставки или отправьте геолокацию:\n\n<i>Например: Шайхантауский р-н, ул. Навруз, 12</i>"
+        : "📍 Yetkazib berish manzilingizni yozing yoki joylashuvingizni yuboring:\n\n<i>Masalan: Shayxontohur, Navruz ko'chasi 12</i>";
+      await this.editMessage(chatId, msgId, text, { inline_keyboard: [] });
+      await this.sendMessage(chatId, lang === 'ru' ? '👇' : '👇', {
+        keyboard: [[{ text: `📍 ${lang === 'ru' ? 'Отправить геолокацию' : 'Joylashuvni yuborish'}`, request_location: true }]],
+        resize_keyboard: true,
+        one_time_keyboard: true,
+      });
+      return;
     } else {
       return this.showPaymentSelection(chatId, lang, msgId);
     }
@@ -1070,6 +1083,23 @@ export class StoreTelegramService implements OnModuleInit {
       ? `✅ Адрес принят: <b>${address}</b>\n\nВыберите способ оплаты:`
       : `✅ Manzil qabul qilindi: <b>${address}</b>\n\nTo'lov turini tanlang:`;
     await this.reply(chatId, ack);
+    return this.showPaymentSelection(chatId, lang, undefined);
+  }
+
+  private async handleCheckoutLocationAddress(chatId: string, location: { latitude: number; longitude: number }) {
+    const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
+    const lang = user?.lang ?? 'uz';
+    const session = await this.getSession(chatId);
+    const chk: CheckoutCtx = JSON.parse(session?.chk ?? '{}');
+    const address = `📍 ${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)}`;
+    chk.address = address;
+    chk.lat = location.latitude;
+    chk.lon = location.longitude;
+    await this.upsertSession(chatId, { state: 'idle', chk: JSON.stringify(chk) });
+    const ack = lang === 'ru'
+      ? `✅ Местоположение принято\n\nВыберите способ оплаты:`
+      : `✅ Joylashuv qabul qilindi\n\nTo'lov turini tanlang:`;
+    await this.sendMessage(chatId, ack, { remove_keyboard: true });
     return this.showPaymentSelection(chatId, lang, undefined);
   }
 
