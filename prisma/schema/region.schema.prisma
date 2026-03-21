@@ -1,7 +1,8 @@
 model Region {
-  id    Int     @default(autoincrement()) @id
-  name  String?
-  image  String?
+  id      Int     @default(autoincrement()) @id
+  name    String?
+  name_ru String?
+  image   String?
   shops Shop[]
   ads Ad[]
   createdt        DateTime           @default(now())

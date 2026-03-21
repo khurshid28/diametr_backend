@@ -22,6 +22,7 @@ export class PromoCodeService {
         min_order_amount: data.min_order_amount ?? null,
         max_uses: data.max_uses ?? null,
         expires_at: data.expires_at ? new Date(data.expires_at) : null,
+        shop_id: data.shop_id ?? null,
       },
     });
   }
@@ -44,9 +45,10 @@ export class PromoCodeService {
     });
   }
 
-  async findAll() {
+  async findAll(shopId?: number) {
     this.logger.log('findAll');
     const items = await this.prisma.promoCode.findMany({
+      where: shopId ? { shop_id: shopId } : {},
       include: { _count: { select: { uses: true } } },
       orderBy: { id: 'desc' },
     });

@@ -212,6 +212,27 @@ async function main() {
     }
   }
   console.log(`OK: ${total} ta shopProduct`)
+
+  // 5. Reklamalar (Bannerlar)
+  const adsData = [
+    { title: "Diametr Qurilish Bozori", subtitle: "Eng yirik qurilish materiallari markazi" },
+    { title: "Tsement va g'isht", subtitle: "Ulgurji narxlarda, tez yetkazib berish" },
+    { title: "Temir va armatura", subtitle: "Zavod narxlarda, katta assortiment" },
+    { title: "Yog'och va laminat", subtitle: "Keng tanlov, yuqori sifat" },
+    { title: "Qurilish asbob-uskunalari", subtitle: "Professional vositalar arzon narxda" },
+  ]
+  for (const ad of adsData) {
+    await prisma.ad.create({
+      data: {
+        title: ad.title,
+        subtitle: ad.subtitle,
+        work_status: WORK_STATUS.WORKING,
+        expired: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      },
+    })
+  }
+  console.log(`OK: ${adsData.length} ta reklama (banner)`)
+
   console.log("\nSeed tayyor!")
 }
 

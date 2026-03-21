@@ -6,6 +6,7 @@ import {
   IsString,
   Min,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateProductItemDto {
   @ApiProperty({ example: 'Qizil rang, 250g', description: 'Variant nomi' })
@@ -23,4 +24,28 @@ export class CreateProductItemDto {
   @IsNotEmpty()
   @Min(1)
   product_id: number;
+
+  @ApiPropertyOptional({ example: 2, description: 'O\'lchov birligi ID (UnitType)' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  unit_type_id?: number;
+
+  @ApiPropertyOptional({ example: 1.5, description: 'O\'lcham qiymati, masalan 1.5 (litr)' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  value?: number;
+
+  @ApiPropertyOptional({ example: 'Qizil', description: 'Rang nomi yoki HEX kodi' })
+  @IsOptional()
+  @IsString()
+  color?: string;
+
+  @ApiPropertyOptional({ example: '120x80', description: 'O\'lcham (masalan XL, 50x50 sm)' })
+  @IsOptional()
+  @IsString()
+  size?: string;
 }

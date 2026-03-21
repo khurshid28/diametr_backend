@@ -27,6 +27,8 @@ model Shop {
 
     payments Payment[]
 
+    promo_codes PromoCode[]
+
     createdt  DateTime @default(now())
     updatedAt DateTime @updatedAt
 

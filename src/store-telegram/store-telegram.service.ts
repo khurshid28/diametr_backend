@@ -8,9 +8,9 @@ import { JwtService } from '@nestjs/jwt';
 
 type CartItem = {
   shop_product_id: number;
-  name: string;        // display name
-  price: number;       // price per unit
-  count: number;       // quantity in cart
+  name: string; // display name
+  price: number; // price per unit
+  count: number; // quantity in cart
   shop_id: number;
   shop_name: string;
 };
@@ -26,32 +26,46 @@ type CheckoutCtx = {
 // ─── Bot commands ─────────────────────────────────────────────────────────────
 
 const STORE_BOT_COMMANDS = [
-  { command: 'start',    description: "🏠 Botni ishga tushirish — Do'konga kirish" },
-  { command: 'orders',   description: '📦 Mening buyurtmalarim — Barchasi sahifali' },
-  { command: 'cart',     description: "🛒 Savat — Tanlangan tovarlar ro'yxati" },
-  { command: 'nearby',   description: "📍 Yaqin atrofdagi do'konlar — GPS orqali" },
-  { command: 'search',   description: "🔍 Qidirish — tovar nomlari va do'konlar" },
+  {
+    command: 'start',
+    description: "🏠 Botni ishga tushirish — Do'konga kirish",
+  },
+  {
+    command: 'orders',
+    description: '📦 Mening buyurtmalarim — Barchasi sahifali',
+  },
+  { command: 'cart', description: "🛒 Savat — Tanlangan tovarlar ro'yxati" },
+  {
+    command: 'nearby',
+    description: "📍 Yaqin atrofdagi do'konlar — GPS orqali",
+  },
+  {
+    command: 'search',
+    description: "🔍 Qidirish — tovar nomlari va do'konlar",
+  },
   { command: 'language', description: "🌐 Tilni o'zgartirish — uz / ru" },
-  { command: 'login',    description: '🔑 Tizimga kirish yoki qayta kirish' },
-  { command: 'help',     description: "❓ Barcha komandalar ro'yxati" },
+  { command: 'login', description: '🔑 Tizimga kirish yoki qayta kirish' },
+  { command: 'help', description: "❓ Barcha komandalar ro'yxati" },
 ];
 
 const STORE_BOT_COMMANDS_RU = [
-  { command: 'start',    description: '🏠 Запустить бота — Перейти в магазин' },
-  { command: 'orders',   description: '📦 Мои заказы — Со страницами' },
-  { command: 'cart',     description: '🛒 Корзина — Список выбранных товаров' },
-  { command: 'nearby',   description: '📍 Ближайшие магазины — Через GPS' },
-  { command: 'search',   description: '🔍 Поиск — товары и магазины с ценами' },
+  { command: 'start', description: '🏠 Запустить бота — Перейти в магазин' },
+  { command: 'orders', description: '📦 Мои заказы — Со страницами' },
+  { command: 'cart', description: '🛒 Корзина — Список выбранных товаров' },
+  { command: 'nearby', description: '📍 Ближайшие магазины — Через GPS' },
+  { command: 'search', description: '🔍 Поиск — товары и магазины с ценами' },
   { command: 'language', description: '🌐 Сменить язык — uz / ru' },
-  { command: 'login',    description: '🔑 Войти или перевойти вход' },
-  { command: 'help',     description: '❓ Список всех команд' },
+  { command: 'login', description: '🔑 Войти или перевойти вход' },
+  { command: 'help', description: '❓ Список всех команд' },
 ];
 
 @Injectable()
 export class StoreTelegramService implements OnModuleInit {
   private readonly logger = new Logger(StoreTelegramService.name);
   private readonly token = process.env.STORE_BOT_TOKEN ?? '';
-  private readonly webhookBase = (process.env.STORE_BOT_WEBHOOK_URL ?? '').replace(/\/$/, '');
+  private readonly webhookBase = (
+    process.env.STORE_BOT_WEBHOOK_URL ?? ''
+  ).replace(/\/$/, '');
   private readonly storeUrl = 'https://diametr.uz/store';
   private readonly ORDERS_PER_PAGE = 3;
   private readonly SEARCH_PER_PAGE = 3;
@@ -75,7 +89,9 @@ export class StoreTelegramService implements OnModuleInit {
     if (this.webhookBase) {
       await this.setWebhook(`${this.webhookBase}/api/v1/store/webhook`);
     } else {
-      this.logger.log("STORE_BOT_WEBHOOK_URL yo'q — long polling rejimida ishga tushmoqda...");
+      this.logger.log(
+        "STORE_BOT_WEBHOOK_URL yo'q — long polling rejimida ishga tushmoqda...",
+      );
       await this.deleteWebhook();
       this.startPolling();
     }
@@ -102,7 +118,9 @@ export class StoreTelegramService implements OnModuleInit {
         { drop_pending_updates: true },
         { timeout: 8000 },
       );
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 
   /** Long-polling loop — runs when STORE_BOT_WEBHOOK_URL is not set */
@@ -133,9 +151,21 @@ export class StoreTelegramService implements OnModuleInit {
   private async registerCommands() {
     try {
       const url = `https://api.telegram.org/bot${this.token}/setMyCommands`;
-      await axios.post(url, { commands: STORE_BOT_COMMANDS }, { timeout: 8000 });
-      await axios.post(url, { commands: STORE_BOT_COMMANDS, language_code: 'uz' }, { timeout: 8000 });
-      await axios.post(url, { commands: STORE_BOT_COMMANDS_RU, language_code: 'ru' }, { timeout: 8000 });
+      await axios.post(
+        url,
+        { commands: STORE_BOT_COMMANDS },
+        { timeout: 8000 },
+      );
+      await axios.post(
+        url,
+        { commands: STORE_BOT_COMMANDS, language_code: 'uz' },
+        { timeout: 8000 },
+      );
+      await axios.post(
+        url,
+        { commands: STORE_BOT_COMMANDS_RU, language_code: 'ru' },
+        { timeout: 8000 },
+      );
       this.logger.log('Store bot commands registered (uz + ru) ✅');
     } catch (e: any) {
       this.logger.error(`registerCommands error: ${e?.message}`);
@@ -208,27 +238,37 @@ export class StoreTelegramService implements OnModuleInit {
   private async handleCommand(cmd: string, chatId: string) {
     switch (cmd) {
       case '/start':
-      case '/login':    return this.cmdStart(chatId);
-      case '/orders':   return this.cmdOrders(chatId, 0);
-      case '/cart':     return this.cmdCart(chatId);
-      case '/nearby':   return this.cmdNearby(chatId);
-      case '/search':   return this.cmdSearchHint(chatId);
-      case '/language': return this.cmdLanguage(chatId);
-      case '/help':     return this.cmdHelp(chatId);
+      case '/login':
+        return this.cmdStart(chatId);
+      case '/orders':
+        return this.cmdOrders(chatId, 0);
+      case '/cart':
+        return this.cmdCart(chatId);
+      case '/nearby':
+        return this.cmdNearby(chatId);
+      case '/search':
+        return this.cmdSearchHint(chatId);
+      case '/language':
+        return this.cmdLanguage(chatId);
+      case '/help':
+        return this.cmdHelp(chatId);
     }
   }
 
   // ─── /start ────────────────────────────────────────────────────────────────
 
   private async cmdStart(chatId: string) {
-    const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
+    const user = await this.prisma.user.findFirst({
+      where: { chat_id: chatId },
+    });
     if (user) {
       const lang = user.lang ?? 'uz';
       const token = await this.generateToken(user);
       const url = `${this.storeUrl}?token=${token}`;
-      const text = lang === 'ru'
-        ? `👋 <b>Добро пожаловать, ${user.fullname ?? user.phone}!</b>\n\n🛒 Нажмите кнопку ниже, чтобы открыть магазин.`
-        : `👋 <b>Xush kelibsiz, ${user.fullname ?? user.phone}!</b>\n\n🛒 Quyidagi tugmani bosib do'konga o'ting.`;
+      const text =
+        lang === 'ru'
+          ? `👋 <b>Добро пожаловать, ${user.fullname ?? user.phone}!</b>\n\n🛒 Нажмите кнопку ниже, чтобы открыть магазин.`
+          : `👋 <b>Xush kelibsiz, ${user.fullname ?? user.phone}!</b>\n\n🛒 Quyidagi tugmani bosib do'konga o'ting.`;
       await this.sendMessage(chatId, text, {
         inline_keyboard: [[{ text: "🛒 Do'konga o'tish", web_app: { url } }]],
       });
@@ -238,7 +278,9 @@ export class StoreTelegramService implements OnModuleInit {
         `🔑 Davom etish uchun telefon raqamingizni ulashing.\n\n` +
         `📱 Quyidagi tugmani bosing:`;
       await this.sendMessage(chatId, text, {
-        keyboard: [[{ text: '📱 Telefon raqamni ulashish', request_contact: true }]],
+        keyboard: [
+          [{ text: '📱 Telefon raqamni ulashish', request_contact: true }],
+        ],
         resize_keyboard: true,
         one_time_keyboard: true,
       });
@@ -248,16 +290,28 @@ export class StoreTelegramService implements OnModuleInit {
   // ─── /orders ───────────────────────────────────────────────────────────────
 
   private async cmdOrders(chatId: string, page = 0) {
-    const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
+    const user = await this.prisma.user.findFirst({
+      where: { chat_id: chatId },
+    });
     const lang = user?.lang ?? 'uz';
     if (!user) {
-      return this.reply(chatId, lang === 'ru'
-        ? '🔑 Вы не вошли в систему. Используйте /login.'
-        : '🔑 Siz tizimga kirmagansiz. Kirish uchun /login.');
+      return this.reply(
+        chatId,
+        lang === 'ru'
+          ? '🔑 Вы не вошли в систему. Используйте /login.'
+          : '🔑 Siz tizimga kirmagansiz. Kirish uchun /login.',
+      );
     }
-    const total = await this.prisma.order.count({ where: { user_id: user.id } });
+    const total = await this.prisma.order.count({
+      where: { user_id: user.id },
+    });
     if (total === 0) {
-      return this.reply(chatId, lang === 'ru' ? '📭 У вас пока нет заказов.' : "📭 Hali buyurtmalaringiz yo'q.");
+      return this.reply(
+        chatId,
+        lang === 'ru'
+          ? '📭 У вас пока нет заказов.'
+          : "📭 Hali buyurtmalaringiz yo'q.",
+      );
     }
     const totalPages = Math.ceil(total / this.ORDERS_PER_PAGE);
     const safePage = Math.max(0, Math.min(page, totalPages - 1));
@@ -268,27 +322,41 @@ export class StoreTelegramService implements OnModuleInit {
       orderBy: { createdt: 'desc' },
       include: { shop: { select: { name: true } } },
     });
-    const { text, keyboard } = this.buildOrdersPage(orders, lang, safePage, totalPages, total);
+    const { text, keyboard } = this.buildOrdersPage(
+      orders,
+      lang,
+      safePage,
+      totalPages,
+      total,
+    );
     await this.sendMessage(chatId, text, { inline_keyboard: keyboard });
   }
 
   private buildOrdersPage(
-    orders: any[], lang: string, page: number, totalPages: number, total: number,
+    orders: any[],
+    lang: string,
+    page: number,
+    totalPages: number,
+    total: number,
   ) {
     const statusEmoji: Record<string, string> = {
-      STARTED: '⏳', FINISHED: '🏁', CONFIRMED: '✅', CANCELED: '❌',
+      STARTED: '⏳',
+      FINISHED: '🏁',
+      CONFIRMED: '✅',
+      CANCELED: '❌',
     };
     const statusLabel: Record<string, Record<string, string>> = {
-      STARTED:   { uz: 'Jarayonda',     ru: 'В процессе' },
-      FINISHED:  { uz: 'Yetkazildi',    ru: 'Доставлен' },
-      CONFIRMED: { uz: 'Tasdiqlandi',   ru: 'Подтверждён' },
-      CANCELED:  { uz: 'Bekor qilindi', ru: 'Отменён' },
+      STARTED: { uz: 'Jarayonda', ru: 'В процессе' },
+      FINISHED: { uz: 'Yetkazildi', ru: 'Доставлен' },
+      CONFIRMED: { uz: 'Tasdiqlandi', ru: 'Подтверждён' },
+      CANCELED: { uz: 'Bekor qilindi', ru: 'Отменён' },
     };
     const nums = ['1️⃣', '2️⃣', '3️⃣'];
     const div = '─────────────────────';
-    const header = lang === 'ru'
-      ? `📦 <b>Мои заказы</b>  ·  Всего: ${total}`
-      : `📦 <b>Buyurtmalarim</b>  ·  Jami: ${total} ta`;
+    const header =
+      lang === 'ru'
+        ? `📦 <b>Мои заказы</b>  ·  Всего: ${total}`
+        : `📦 <b>Buyurtmalarim</b>  ·  Jami: ${total} ta`;
     const lines = orders.map((o, i) => {
       const num = nums[i] ?? `${page * this.ORDERS_PER_PAGE + i + 1}.`;
       const emoji = statusEmoji[o.status] ?? '⚪';
@@ -299,9 +367,10 @@ export class StoreTelegramService implements OnModuleInit {
       const date = `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
       return `${num} <b>#${o.id}</b>  ·  ${shop}\n    ${emoji} ${sl}\n    💰 ${amount} so'm   ·   📅 ${date}`;
     });
-    const pageInfo = lang === 'ru'
-      ? `📄 Страница ${page + 1} / ${totalPages}`
-      : `📄 Sahifa ${page + 1} / ${totalPages}`;
+    const pageInfo =
+      lang === 'ru'
+        ? `📄 Страница ${page + 1} / ${totalPages}`
+        : `📄 Sahifa ${page + 1} / ${totalPages}`;
     const text = `${header}\n${div}\n\n${lines.join('\n\n')}\n\n${div}\n${pageInfo}`;
     const pageRow = this.buildPageRow(totalPages, page, (p) => `orders_${p}`);
     return { text, keyboard: pageRow.length ? [pageRow] : [] };
@@ -318,10 +387,12 @@ export class StoreTelegramService implements OnModuleInit {
     const cart = this.parseCart(session?.cart);
 
     if (cart.length === 0) {
-      const text = lang === 'ru'
-        ? "🛒 Ваша корзина пуста.\n\nИспользуйте /search для поиска товаров."
-        : "🛒 Savatingiz bo'sh.\n\n/search orqali tovar qidiring.";
-      if (msgId) return this.editMessage(chatId, msgId, text, { inline_keyboard: [] });
+      const text =
+        lang === 'ru'
+          ? '🛒 Ваша корзина пуста.\n\nИспользуйте /search для поиска товаров.'
+          : "🛒 Savatingiz bo'sh.\n\n/search orqali tovar qidiring.";
+      if (msgId)
+        return this.editMessage(chatId, msgId, text, { inline_keyboard: [] });
       return this.reply(chatId, text);
     }
 
@@ -331,107 +402,172 @@ export class StoreTelegramService implements OnModuleInit {
     const nums = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
     const div = '━━━━━━━━━━━━━━━━━━━━━';
 
-    const header = lang === 'ru'
-      ? `🛒 <b>Корзина</b>  ·  ${shopName}`
-      : `🛒 <b>Savat</b>  ·  ${shopName}`;
+    const header =
+      lang === 'ru'
+        ? `🛒 <b>Корзина</b>  ·  ${shopName}`
+        : `🛒 <b>Savat</b>  ·  ${shopName}`;
     const lines = cart.map((item, i) => {
       const amt = (item.price * item.count).toLocaleString('ru-RU');
       const pr = item.price.toLocaleString('ru-RU');
       return `${nums[i] ?? `${i + 1}.`}  <b>${item.name}</b>\n    💰 ${pr} × ${item.count} = ${amt} so'm`;
     });
-    const footer = lang === 'ru'
-      ? `📦 ${totalQty} шт.  ·  💰 Итого: <b>${total.toLocaleString('ru-RU')} сум</b>`
-      : `📦 ${totalQty} ta  ·  💰 Jami: <b>${total.toLocaleString('ru-RU')} so'm</b>`;
+    const footer =
+      lang === 'ru'
+        ? `📦 ${totalQty} шт.  ·  💰 Итого: <b>${total.toLocaleString('ru-RU')} сум</b>`
+        : `📦 ${totalQty} ta  ·  💰 Jami: <b>${total.toLocaleString('ru-RU')} so'm</b>`;
     const text = `${header}\n${div}\n\n${lines.join('\n\n')}\n\n${div}\n${footer}`;
 
     // Per-item quantity control rows
     const qtyRows = cart.map((item) => [
       { text: '➖', callback_data: `dec:${item.shop_product_id}` },
-      { text: `${item.name.substring(0, 16)}  (${item.count} ta)`, callback_data: 'noop' },
+      {
+        text: `${item.name.substring(0, 16)}  (${item.count} ta)`,
+        callback_data: 'noop',
+      },
       { text: '➕', callback_data: `inc:${item.shop_product_id}` },
     ]);
     const clearRow = [
-      { text: lang === 'ru' ? '🗑 Очистить корзину' : '🗑 Savatni tozalash', callback_data: 'clrcart' },
+      {
+        text: lang === 'ru' ? '🗑 Очистить корзину' : '🗑 Savatni tozalash',
+        callback_data: 'clrcart',
+      },
     ];
     const checkoutRow = [
-      { text: lang === 'ru' ? '✅ Оформить заказ' : '✅ Buyurtma berish', callback_data: 'checkout' },
+      {
+        text: lang === 'ru' ? '✅ Оформить заказ' : '✅ Buyurtma berish',
+        callback_data: 'checkout',
+      },
     ];
     const keyboard = [...qtyRows, clearRow, checkoutRow];
 
-    if (msgId) return this.editMessage(chatId, msgId, text, { inline_keyboard: keyboard });
+    if (msgId)
+      return this.editMessage(chatId, msgId, text, {
+        inline_keyboard: keyboard,
+      });
     return this.sendMessage(chatId, text, { inline_keyboard: keyboard });
   }
 
   // ─── /nearby ───────────────────────────────────────────────────────────────
 
   private async cmdNearby(chatId: string) {
-    const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
+    const user = await this.prisma.user.findFirst({
+      where: { chat_id: chatId },
+    });
     const lang = user?.lang ?? 'uz';
-    const text = lang === 'ru'
-      ? "📍 <b>Поделитесь местоположением</b>, чтобы найти ближайшие магазины:"
-      : "📍 <b>Joylashuvingizni ulashing</b>, yaqin do'konlarni topish uchun:";
+    const text =
+      lang === 'ru'
+        ? '📍 <b>Поделитесь местоположением</b>, чтобы найти ближайшие магазины:'
+        : "📍 <b>Joylashuvingizni ulashing</b>, yaqin do'konlarni topish uchun:";
     await this.sendMessage(chatId, text, {
-      keyboard: [[{
-        text: `📍 ${lang === 'ru' ? 'Отправить геолокацию' : 'Joylashuvni yuborish'}`,
-        request_location: true,
-      }]],
+      keyboard: [
+        [
+          {
+            text: `📍 ${lang === 'ru' ? 'Отправить геолокацию' : 'Joylashuvni yuborish'}`,
+            request_location: true,
+          },
+        ],
+      ],
       resize_keyboard: true,
       one_time_keyboard: true,
     });
   }
 
-  private async handleLocation(chatId: string, location: { latitude: number; longitude: number }) {
-    const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
+  private async handleLocation(
+    chatId: string,
+    location: { latitude: number; longitude: number },
+  ) {
+    const user = await this.prisma.user.findFirst({
+      where: { chat_id: chatId },
+    });
     const lang = user?.lang ?? 'uz';
-    await this.upsertSession(chatId, { lat: location.latitude, lon: location.longitude, shop_q: null });
-    const loadingText = lang === 'ru'
-      ? '⏳ Ищу ближайшие магазины...'
-      : "⏳ Yaqin do'konlar qidirilmoqda...";
+    await this.upsertSession(chatId, {
+      lat: location.latitude,
+      lon: location.longitude,
+      shop_q: null,
+    });
+    const loadingText =
+      lang === 'ru'
+        ? '⏳ Ищу ближайшие магазины...'
+        : "⏳ Yaqin do'konlar qidirilmoqda...";
     await this.sendMessage(chatId, loadingText, { remove_keyboard: true });
-    const { text, keyboard } = await this.buildNearbyContent(location.latitude, location.longitude, 0, 'd', lang);
+    const { text, keyboard } = await this.buildNearbyContent(
+      location.latitude,
+      location.longitude,
+      0,
+      'd',
+      lang,
+    );
     await this.sendMessage(chatId, text, { inline_keyboard: keyboard });
   }
 
   private async buildNearbyContent(
-    lat: number, lon: number, page: number, sort: string, lang: string,
+    lat: number,
+    lon: number,
+    page: number,
+    sort: string,
+    lang: string,
   ): Promise<{ text: string; keyboard: any[][] }> {
     const allShops = await this.prisma.shop.findMany({
       where: { work_status: 'WORKING', lat: { not: null }, lon: { not: null } },
       select: {
-        id: true, name: true, address: true, lat: true, lon: true,
-        _count: { select: { products: { where: { work_status: 'WORKING', count: { gt: 0 } } } } },
+        id: true,
+        name: true,
+        address: true,
+        lat: true,
+        lon: true,
+        _count: {
+          select: {
+            products: { where: { work_status: 'WORKING', count: { gt: 0 } } },
+          },
+        },
       },
     });
 
-    const withDist = allShops.map((s) => ({ ...s, _count: s._count, dist: this.haversine(lat, lon, s.lat!, s.lon!) }));
-    if (sort === 'n') withDist.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
-    else if (sort === 'c') withDist.sort((a, b) => b._count.products - a._count.products);
+    const withDist = allShops.map((s) => ({
+      ...s,
+      _count: s._count,
+      dist: this.haversine(lat, lon, s.lat!, s.lon!),
+    }));
+    if (sort === 'n')
+      withDist.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
+    else if (sort === 'c')
+      withDist.sort((a, b) => b._count.products - a._count.products);
     else withDist.sort((a, b) => a.dist - b.dist);
 
     const total = withDist.length;
     if (total === 0) {
       return {
-        text: lang === 'ru' ? "😔 Рядом нет работающих магазинов." : "😔 Yaqin atrofda do'kon topilmadi.",
+        text:
+          lang === 'ru'
+            ? '😔 Рядом нет работающих магазинов.'
+            : "😔 Yaqin atrofda do'kon topilmadi.",
         keyboard: [],
       };
     }
 
     const totalPages = Math.ceil(total / this.SEARCH_PER_PAGE);
     const safePage = Math.max(0, Math.min(page, totalPages - 1));
-    const slice = withDist.slice(safePage * this.SEARCH_PER_PAGE, (safePage + 1) * this.SEARCH_PER_PAGE);
+    const slice = withDist.slice(
+      safePage * this.SEARCH_PER_PAGE,
+      (safePage + 1) * this.SEARCH_PER_PAGE,
+    );
     const nums = ['1️⃣', '2️⃣', '3️⃣'];
     const div = '━━━━━━━━━━━━━━━━━━━━━';
     const sortLabels: Record<string, Record<string, string>> = {
       d: { uz: '📏 Masofa', ru: '📏 Расстояние' },
-      n: { uz: '🔤 Nom',    ru: '🔤 Название' },
-      c: { uz: '📦 Tovar',  ru: '📦 Товаров' },
+      n: { uz: '🔤 Nom', ru: '🔤 Название' },
+      c: { uz: '📦 Tovar', ru: '📦 Товаров' },
     };
-    const header = lang === 'ru'
-      ? `📍 <b>Ближайшие магазины</b>  ·  ${total} шт.`
-      : `📍 <b>Yaqin do'konlar</b>  ·  ${total} ta`;
+    const header =
+      lang === 'ru'
+        ? `📍 <b>Ближайшие магазины</b>  ·  ${total} шт.`
+        : `📍 <b>Yaqin do'konlar</b>  ·  ${total} ta`;
 
     const lines = slice.map((s, i) => {
-      const d = s.dist < 1 ? `${Math.round(s.dist * 1000)} m` : `${s.dist.toFixed(1)} km`;
+      const d =
+        s.dist < 1
+          ? `${Math.round(s.dist * 1000)} m`
+          : `${s.dist.toFixed(1)} km`;
       const prodCnt = s._count.products;
       return (
         `${nums[i] ?? `${safePage * this.SEARCH_PER_PAGE + i + 1}.`} <b>${s.name ?? '—'}</b>\n` +
@@ -440,19 +576,28 @@ export class StoreTelegramService implements OnModuleInit {
       );
     });
 
-    const pageInfo = lang === 'ru'
-      ? `📄 Стр. ${safePage + 1} / ${totalPages}`
-      : `📄 ${safePage + 1} / ${totalPages} sahifa`;
+    const pageInfo =
+      lang === 'ru'
+        ? `📄 Стр. ${safePage + 1} / ${totalPages}`
+        : `📄 ${safePage + 1} / ${totalPages} sahifa`;
     const text = `${header}\n${div}\n\n${lines.join('\n\n')}\n\n${div}\n${pageInfo}`;
 
-    const shopRows = slice.map((s) => ([
-      { text: `🛍 ${(s.name ?? '').substring(0, 28)}`, callback_data: `sp:${s.id}:0` },
-    ]));
+    const shopRows = slice.map((s) => [
+      {
+        text: `🛍 ${(s.name ?? '').substring(0, 28)}`,
+        callback_data: `sp:${s.id}:0`,
+      },
+    ]);
     const sortRow = (['d', 'n', 'c'] as const).map((k) => ({
-      text: (sort === k ? '·' : '') + sortLabels[k][lang] + (sort === k ? '·' : ''),
+      text:
+        (sort === k ? '·' : '') + sortLabels[k][lang] + (sort === k ? '·' : ''),
       callback_data: `nb:0:${k}`,
     }));
-    const pageRow = this.buildPageRow(totalPages, safePage, (p) => `nb:${p}:${sort}`);
+    const pageRow = this.buildPageRow(
+      totalPages,
+      safePage,
+      (p) => `nb:${p}:${sort}`,
+    );
     const keyboard: any[][] = [...shopRows, sortRow];
     if (pageRow.length) keyboard.push(pageRow);
     return { text, keyboard };
@@ -466,8 +611,14 @@ export class StoreTelegramService implements OnModuleInit {
 
   // ─── Category catalog browser ──────────────────────────────────────────────
 
-  private async cmdShowCategories(chatId: string, page: number, msgId?: number) {
-    const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
+  private async cmdShowCategories(
+    chatId: string,
+    page: number,
+    msgId?: number,
+  ) {
+    const user = await this.prisma.user.findFirst({
+      where: { chat_id: chatId },
+    });
     const lang = user?.lang ?? 'uz';
 
     const cats = await this.prisma.category.findMany({
@@ -478,22 +629,32 @@ export class StoreTelegramService implements OnModuleInit {
             items: {
               some: {
                 work_status: 'WORKING',
-                shop_products: { some: { work_status: 'WORKING', count: { gt: 0 } } },
+                shop_products: {
+                  some: { work_status: 'WORKING', count: { gt: 0 } },
+                },
               },
             },
           },
         },
       },
       select: {
-        id: true, name: true, name_uz: true, name_ru: true, image: true,
+        id: true,
+        name: true,
+        name_uz: true,
+        name_ru: true,
+        image: true,
         _count: { select: { products: { where: { work_status: 'WORKING' } } } },
       },
       orderBy: { name: 'asc' },
     });
 
     if (cats.length === 0) {
-      const no = lang === 'ru' ? '📂 Категории не найдены.' : '📂 Kategoriyalar topilmadi.';
-      if (msgId) return this.editMessage(chatId, msgId, no, { inline_keyboard: [] });
+      const no =
+        lang === 'ru'
+          ? '📂 Категории не найдены.'
+          : '📂 Kategoriyalar topilmadi.';
+      if (msgId)
+        return this.editMessage(chatId, msgId, no, { inline_keyboard: [] });
       return this.reply(chatId, no);
     }
 
@@ -502,34 +663,49 @@ export class StoreTelegramService implements OnModuleInit {
     const totalPages = Math.ceil(total / PER);
     const safePage = Math.max(0, Math.min(page, totalPages - 1));
     const slice = cats.slice(safePage * PER, (safePage + 1) * PER);
-    const nums = ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣'];
+    const nums = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣'];
     const div = '━━━━━━━━━━━━━━━━━━━━━';
 
-    const header = lang === 'ru'
-      ? `📂 <b>Каталог</b>  ·  ${total} категорий`
-      : `📂 <b>Katalog</b>  ·  ${total} ta kategoriya`;
+    const header =
+      lang === 'ru'
+        ? `📂 <b>Каталог</b>  ·  ${total} категорий`
+        : `📂 <b>Katalog</b>  ·  ${total} ta kategoriya`;
 
     const lines = slice.map((cat, i) => {
-      const catName = (lang === 'ru' ? (cat.name_ru ?? cat.name) : (cat.name_uz ?? cat.name)) ?? '—';
+      const catName =
+        (lang === 'ru'
+          ? (cat.name_ru ?? cat.name)
+          : (cat.name_uz ?? cat.name)) ?? '—';
       const cnt = cat._count?.products ?? 0;
       return `${nums[i] ?? `${safePage * PER + i + 1}.`}  <b>${catName}</b>  ·  📦 ${cnt} ${lang === 'ru' ? 'тов.' : 'tovar'}`;
     });
 
-    const pageInfo = lang === 'ru'
-      ? `📄 стр. ${safePage + 1} / ${totalPages}`
-      : `📄 ${safePage + 1} / ${totalPages} sahifa`;
+    const pageInfo =
+      lang === 'ru'
+        ? `📄 стр. ${safePage + 1} / ${totalPages}`
+        : `📄 ${safePage + 1} / ${totalPages} sahifa`;
     const text = `${header}\n${div}\n\n${lines.join('\n')}\n\n${div}\n${pageInfo}`;
 
     const catBtns = slice.map((cat) => {
-      const catName = (lang === 'ru' ? (cat.name_ru ?? cat.name) : (cat.name_uz ?? cat.name)) ?? '—';
+      const catName =
+        (lang === 'ru'
+          ? (cat.name_ru ?? cat.name)
+          : (cat.name_uz ?? cat.name)) ?? '—';
       return [{ text: `🛍 ${catName}`, callback_data: `catsel:${cat.id}:0` }];
     });
     const pageRow = this.buildPageRow(totalPages, safePage, (p) => `cat:${p}`);
     const keyboard: any[][] = [...catBtns];
     if (pageRow.length) keyboard.push(pageRow);
     keyboard.push([
-      { text: lang === 'ru' ? '🔍 Поиск по названию' : "🔍 Nom bo'yicha qidirish", callback_data: 'search_prod' },
-      { text: lang === 'ru' ? '🏪 Магазин' : "🏪 Do'kon", callback_data: 'search_shop' },
+      {
+        text:
+          lang === 'ru' ? '🔍 Поиск по названию' : "🔍 Nom bo'yicha qidirish",
+        callback_data: 'search_prod',
+      },
+      {
+        text: lang === 'ru' ? '🏪 Магазин' : "🏪 Do'kon",
+        callback_data: 'search_shop',
+      },
     ]);
 
     const firstPhoto = this.imgUrl(slice.find((c) => c.image)?.image);
@@ -539,14 +715,23 @@ export class StoreTelegramService implements OnModuleInit {
         : this.editMessage(chatId, msgId, text, { inline_keyboard: keyboard });
     }
     return firstPhoto
-      ? this.sendTgPhoto(chatId, firstPhoto, text, { inline_keyboard: keyboard })
+      ? this.sendTgPhoto(chatId, firstPhoto, text, {
+          inline_keyboard: keyboard,
+        })
       : this.sendMessage(chatId, text, { inline_keyboard: keyboard });
   }
 
   // ─── Product items in a category ─────────────────────────────────────────
 
-  private async cmdShowCategoryItems(chatId: string, catId: number, page: number, msgId?: number) {
-    const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
+  private async cmdShowCategoryItems(
+    chatId: string,
+    catId: number,
+    page: number,
+    msgId?: number,
+  ) {
+    const user = await this.prisma.user.findFirst({
+      where: { chat_id: chatId },
+    });
     const lang = user?.lang ?? 'uz';
 
     const [cat, items] = await Promise.all([
@@ -561,30 +746,63 @@ export class StoreTelegramService implements OnModuleInit {
           product: { category_id: catId },
         },
         select: {
-          id: true, name: true, image: true,
+          id: true,
+          name: true,
+          image: true,
+          color: true,
+          size: true,
+          value: true,
+          unit_type: { select: { id: true, symbol: true } },
           product: {
             select: {
-              name: true, name_uz: true, name_ru: true, image: true,
-              category: { select: { name: true, name_uz: true, name_ru: true } },
+              name: true,
+              name_uz: true,
+              name_ru: true,
+              image: true,
+              category: {
+                select: { name: true, name_uz: true, name_ru: true },
+              },
             },
           },
-          _count: { select: { shop_products: { where: { work_status: 'WORKING', count: { gt: 0 } } } } },
+          _count: {
+            select: {
+              shop_products: {
+                where: { work_status: 'WORKING', count: { gt: 0 } },
+              },
+            },
+          },
         },
         take: 200,
       }),
     ]);
 
     if (items.length === 0) {
-      const no = lang === 'ru' ? '📦 В этой категории нет товаров.' : "📦 Bu kategoriyada tovar yo'q.";
-      if (msgId) return this.editMessage(chatId, msgId, no, { inline_keyboard: [] });
+      const no =
+        lang === 'ru'
+          ? '📦 В этой категории нет товаров.'
+          : "📦 Bu kategoriyada tovar yo'q.";
+      if (msgId)
+        return this.editMessage(chatId, msgId, no, { inline_keyboard: [] });
       return this.reply(chatId, no);
     }
 
-    const catName = (lang === 'ru' ? (cat?.name_ru ?? cat?.name) : (cat?.name_uz ?? cat?.name)) ?? '—';
-    const header = lang === 'ru'
-      ? `🗂 <b>${catName}</b>  ·  ${items.length} шт.`
-      : `🗂 <b>${catName}</b>  ·  ${items.length} ta`;
-    await this.sendProductItemsPage(chatId, items, lang, page, { cat_id: catId }, header, msgId);
+    const catName =
+      (lang === 'ru'
+        ? (cat?.name_ru ?? cat?.name)
+        : (cat?.name_uz ?? cat?.name)) ?? '—';
+    const header =
+      lang === 'ru'
+        ? `🗂 <b>${catName}</b>  ·  ${items.length} шт.`
+        : `🗂 <b>${catName}</b>  ·  ${items.length} ta`;
+    await this.sendProductItemsPage(
+      chatId,
+      items,
+      lang,
+      page,
+      { cat_id: catId },
+      header,
+      msgId,
+    );
   }
 
   // ─── Product items single-message paginated list ───────────────────────────
@@ -603,48 +821,71 @@ export class StoreTelegramService implements OnModuleInit {
     const totalPages = Math.ceil(total / PER);
     const safePage = Math.max(0, Math.min(page, totalPages - 1));
     const slice = items.slice(safePage * PER, (safePage + 1) * PER);
-    const nums = ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣'];
+    const nums = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣'];
     const div = '━━━━━━━━━━━━━━━━━━━━━';
 
     const lines = slice.map((pi, i) => {
-      const pname = (lang === 'ru'
-        ? (pi.product?.name_ru ?? pi.product?.name ?? pi.name)
-        : (pi.product?.name_uz ?? pi.product?.name ?? pi.name)) ?? '—';
+      const pname =
+        (lang === 'ru'
+          ? (pi.product?.name_ru ?? pi.product?.name ?? pi.name)
+          : (pi.product?.name_uz ?? pi.product?.name ?? pi.name)) ?? '—';
       const variant = pi.name && pi.name !== pname ? `  ·  ${pi.name}` : '';
-      const catLabel = lang === 'ru'
-        ? (pi.product?.category?.name_ru ?? pi.product?.category?.name ?? '')
-        : (pi.product?.category?.name_uz ?? pi.product?.category?.name ?? '');
+      // Build variant detail string: unit/value, color, size
+      const parts: string[] = [];
+      if (pi.value != null && pi.unit_type?.symbol)
+        parts.push(`${pi.value} ${pi.unit_type.symbol}`);
+      else if (pi.unit_type?.symbol) parts.push(pi.unit_type.symbol);
+      if (pi.color) parts.push(`🎨 ${pi.color}`);
+      if (pi.size) parts.push(`📐 ${pi.size}`);
+      const variantDetail =
+        parts.length > 0 ? `\n    📌 ${parts.join('  ·  ')}` : '';
+      const catLabel =
+        lang === 'ru'
+          ? (pi.product?.category?.name_ru ?? pi.product?.category?.name ?? '')
+          : (pi.product?.category?.name_uz ?? pi.product?.category?.name ?? '');
       const shopCount = pi._count?.shop_products ?? 0;
-      const shopLabel = lang === 'ru'
-        ? `${shopCount} маг.`
-        : `${shopCount} ta do'kon`;
+      const shopLabel =
+        lang === 'ru' ? `${shopCount} маг.` : `${shopCount} ta do'kon`;
       return (
-        `${nums[i] ?? `${safePage * PER + i + 1}.`}  <b>${pname}${variant}</b>\n` +
+        `${nums[i] ?? `${safePage * PER + i + 1}.`}  <b>${pname}${variant}</b>${variantDetail}\n` +
         `    ${catLabel ? `🗂 ${catLabel}   ·   ` : ''}🏪 ${shopLabel}`
       );
     });
 
-    const pageInfo = lang === 'ru'
-      ? `📄 стр. ${safePage + 1} / ${totalPages}`
-      : `📄 ${safePage + 1} / ${totalPages} sahifa`;
+    const pageInfo =
+      lang === 'ru'
+        ? `📄 стр. ${safePage + 1} / ${totalPages}`
+        : `📄 ${safePage + 1} / ${totalPages} sahifa`;
     const text = `${headerLine}\n${div}\n\n${lines.join('\n\n')}\n\n${div}\n${pageInfo}`;
 
     const itemBtns = slice.map((pi) => {
-      const pname = (lang === 'ru'
-        ? (pi.product?.name_ru ?? pi.product?.name ?? pi.name)
-        : (pi.product?.name_uz ?? pi.product?.name ?? pi.name)) ?? '—';
+      const pname =
+        (lang === 'ru'
+          ? (pi.product?.name_ru ?? pi.product?.name ?? pi.name)
+          : (pi.product?.name_uz ?? pi.product?.name ?? pi.name)) ?? '—';
       const variant = pi.name && pi.name !== pname ? ` · ${pi.name}` : '';
       const cnt = pi._count?.shop_products ?? 0;
-      return [{ text: `🏪 ${(pname + variant).substring(0, 26)} (${cnt} ta)`, callback_data: `pshops:${pi.id}` }];
+      return [
+        {
+          text: `🏪 ${(pname + variant).substring(0, 26)} (${cnt} ta)`,
+          callback_data: `pshops:${pi.id}`,
+        },
+      ];
     });
 
-    const paginationFn = ctx.cat_id != null
-      ? (p: number) => `catsel:${ctx.cat_id}:${p}`
-      : (p: number) => `pr:${p}`;
+    const paginationFn =
+      ctx.cat_id != null
+        ? (p: number) => `catsel:${ctx.cat_id}:${p}`
+        : (p: number) => `pr:${p}`;
     const pageRow = this.buildPageRow(totalPages, safePage, paginationFn);
     const keyboard: any[][] = [...itemBtns];
     if (pageRow.length) keyboard.push(pageRow);
-    keyboard.push([{ text: lang === 'ru' ? '◀️ Каталог' : '◀️ Katalog', callback_data: 'cat:0' }]);
+    keyboard.push([
+      {
+        text: lang === 'ru' ? '◀️ Каталог' : '◀️ Katalog',
+        callback_data: 'cat:0',
+      },
+    ]);
 
     const firstPhoto = (() => {
       for (const pi of slice) {
@@ -660,73 +901,117 @@ export class StoreTelegramService implements OnModuleInit {
         : this.editMessage(chatId, msgId, text, { inline_keyboard: keyboard });
     }
     return firstPhoto
-      ? this.sendTgPhoto(chatId, firstPhoto, text, { inline_keyboard: keyboard })
+      ? this.sendTgPhoto(chatId, firstPhoto, text, {
+          inline_keyboard: keyboard,
+        })
       : this.sendMessage(chatId, text, { inline_keyboard: keyboard });
   }
 
   // ─── Shop search ───────────────────────────────────────────────────────────
 
-  private async cmdSearchShops(chatId: string, query: string, page: number, sort: string) {
+  private async cmdSearchShops(
+    chatId: string,
+    query: string,
+    page: number,
+    sort: string,
+  ) {
     const [user, session] = await Promise.all([
       this.prisma.user.findFirst({ where: { chat_id: chatId } }),
       this.upsertSession(chatId, { shop_q: query }),
     ]);
     const lang = user?.lang ?? 'uz';
-    const userLoc = session.lat && session.lon ? { lat: session.lat, lon: session.lon } : undefined;
+    const userLoc =
+      session.lat && session.lon
+        ? { lat: session.lat, lon: session.lon }
+        : undefined;
 
     const all = await this.prisma.shop.findMany({
       where: { work_status: 'WORKING', name: { contains: query } },
       select: {
-        id: true, name: true, address: true, lat: true, lon: true,
-        _count: { select: { products: { where: { work_status: 'WORKING', count: { gt: 0 } } } } },
+        id: true,
+        name: true,
+        address: true,
+        lat: true,
+        lon: true,
+        _count: {
+          select: {
+            products: { where: { work_status: 'WORKING', count: { gt: 0 } } },
+          },
+        },
       },
       take: 200,
     });
 
     if (all.length === 0) {
-      return this.reply(chatId, lang === 'ru'
-        ? `🔍 <b>Магазин не найден</b> по запросу «${query}»`
-        : `🔍 <b>Do'kon topilmadi</b> «${query}» so'rovi bo'yicha`);
+      return this.reply(
+        chatId,
+        lang === 'ru'
+          ? `🔍 <b>Магазин не найден</b> по запросу «${query}»`
+          : `🔍 <b>Do'kon topilmadi</b> «${query}» so'rovi bo'yicha`,
+      );
     }
 
     const withDist = all.map((s) => ({
       ...s,
       _count: s._count,
-      dist: userLoc && s.lat && s.lon ? this.haversine(userLoc.lat, userLoc.lon, s.lat, s.lon) : null,
+      dist:
+        userLoc && s.lat && s.lon
+          ? this.haversine(userLoc.lat, userLoc.lon, s.lat, s.lon)
+          : null,
     }));
-    if (sort === 'n') withDist.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
-    else if (sort === 'c') withDist.sort((a, b) => b._count.products - a._count.products);
+    if (sort === 'n')
+      withDist.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
+    else if (sort === 'c')
+      withDist.sort((a, b) => b._count.products - a._count.products);
     else withDist.sort((a, b) => (a.dist ?? Infinity) - (b.dist ?? Infinity));
 
-    const { text, keyboard } = this.buildShopsPage(withDist, query, lang, page, sort, userLoc);
+    const { text, keyboard } = this.buildShopsPage(
+      withDist,
+      query,
+      lang,
+      page,
+      sort,
+      userLoc,
+    );
     await this.sendMessage(chatId, text, { inline_keyboard: keyboard });
   }
 
   private buildShopsPage(
-    shops: any[], query: string, lang: string, page: number, sort: string,
+    shops: any[],
+    query: string,
+    lang: string,
+    page: number,
+    sort: string,
     loc?: { lat: number; lon: number },
   ) {
     const total = shops.length;
     const totalPages = Math.ceil(total / this.SEARCH_PER_PAGE);
     const safePage = Math.max(0, Math.min(page, totalPages - 1));
-    const slice = shops.slice(safePage * this.SEARCH_PER_PAGE, (safePage + 1) * this.SEARCH_PER_PAGE);
+    const slice = shops.slice(
+      safePage * this.SEARCH_PER_PAGE,
+      (safePage + 1) * this.SEARCH_PER_PAGE,
+    );
     const nums = ['1️⃣', '2️⃣', '3️⃣'];
     const div = '━━━━━━━━━━━━━━━━━━━━━';
     const sortLabels: Record<string, Record<string, string>> = {
       d: { uz: '📏 Masofa', ru: '📏 Расстояние' },
-      n: { uz: '🔤 Nom',    ru: '🔤 Название' },
-      c: { uz: '📦 Tovar',  ru: '📦 Товаров' },
+      n: { uz: '🔤 Nom', ru: '🔤 Название' },
+      c: { uz: '📦 Tovar', ru: '📦 Товаров' },
     };
-    const header = lang === 'ru'
-      ? `🏪 <b>Магазины</b>  ·  «${query}»  ·  ${total} шт.`
-      : `🏪 <b>Do'konlar</b>  ·  «${query}»  ·  ${total} ta`;
+    const header =
+      lang === 'ru'
+        ? `🏪 <b>Магазины</b>  ·  «${query}»  ·  ${total} шт.`
+        : `🏪 <b>Do'konlar</b>  ·  «${query}»  ·  ${total} ta`;
 
     const lines = slice.map((s, i) => {
       const num = nums[i] ?? `${safePage * this.SEARCH_PER_PAGE + i + 1}.`;
       const prodCnt = s._count?.products ?? 0;
       let geoLine: string;
       if (s.dist != null) {
-        const d = s.dist < 1 ? `${Math.round(s.dist * 1000)} m` : `${s.dist.toFixed(1)} km`;
+        const d =
+          s.dist < 1
+            ? `${Math.round(s.dist * 1000)} m`
+            : `${s.dist.toFixed(1)} km`;
         geoLine = `🚩 ${d} ${lang === 'ru' ? 'от вас' : 'uzoqda'}`;
       } else if (s.lat && s.lon) {
         geoLine = `🗺 ${lang === 'ru' ? 'Есть на карте' : 'Xaritada mavjud'}`;
@@ -740,19 +1025,28 @@ export class StoreTelegramService implements OnModuleInit {
       );
     });
 
-    const pageInfo = lang === 'ru'
-      ? `📄 Стр. ${safePage + 1} / ${totalPages}`
-      : `📄 ${safePage + 1} / ${totalPages}`;
+    const pageInfo =
+      lang === 'ru'
+        ? `📄 Стр. ${safePage + 1} / ${totalPages}`
+        : `📄 ${safePage + 1} / ${totalPages}`;
     const text = `${header}\n${div}\n\n${lines.join('\n\n')}\n\n${div}\n${pageInfo}`;
 
-    const shopRows = slice.map((s) => ([
-      { text: `🛍 ${(s.name ?? '').substring(0, 28)}`, callback_data: `sp:${s.id}:0` },
-    ]));
+    const shopRows = slice.map((s) => [
+      {
+        text: `🛍 ${(s.name ?? '').substring(0, 28)}`,
+        callback_data: `sp:${s.id}:0`,
+      },
+    ]);
     const sortRow = (['d', 'n', 'c'] as const).map((k) => ({
-      text: (sort === k ? '·' : '') + sortLabels[k][lang] + (sort === k ? '·' : ''),
+      text:
+        (sort === k ? '·' : '') + sortLabels[k][lang] + (sort === k ? '·' : ''),
       callback_data: `sh:${safePage}:${k}`,
     }));
-    const pageRow = this.buildPageRow(totalPages, safePage, (p) => `sh:${p}:${sort}`);
+    const pageRow = this.buildPageRow(
+      totalPages,
+      safePage,
+      (p) => `sh:${p}:${sort}`,
+    );
     const keyboard: any[][] = [...shopRows, sortRow];
     if (pageRow.length) keyboard.push(pageRow);
     return { text, keyboard };
@@ -760,7 +1054,12 @@ export class StoreTelegramService implements OnModuleInit {
 
   // ─── Product search: text query → paginated list ────────────────────────────
 
-  private async cmdSearchProducts(chatId: string, query: string, page: number, msgId?: number) {
+  private async cmdSearchProducts(
+    chatId: string,
+    query: string,
+    page: number,
+    msgId?: number,
+  ) {
     const [user] = await Promise.all([
       this.prisma.user.findFirst({ where: { chat_id: chatId } }),
       this.upsertSession(chatId, { prod_q: query }),
@@ -779,43 +1078,86 @@ export class StoreTelegramService implements OnModuleInit {
         ],
       },
       select: {
-        id: true, name: true, image: true,
+        id: true,
+        name: true,
+        image: true,
+        color: true,
+        size: true,
+        value: true,
+        unit_type: { select: { id: true, symbol: true } },
         product: {
           select: {
-            name: true, name_uz: true, name_ru: true, image: true,
+            name: true,
+            name_uz: true,
+            name_ru: true,
+            image: true,
             category: { select: { name: true, name_uz: true, name_ru: true } },
           },
         },
-        _count: { select: { shop_products: { where: { work_status: 'WORKING', count: { gt: 0 } } } } },
+        _count: {
+          select: {
+            shop_products: {
+              where: { work_status: 'WORKING', count: { gt: 0 } },
+            },
+          },
+        },
       },
       take: 100,
     });
 
     if (all.length === 0) {
-      const no = lang === 'ru'
-        ? `🔍 <b>Товар не найден</b> по запросу «${query}»`
-        : `🔍 <b>Tovar topilmadi</b> «${query}» so'rovi bo'yicha`;
-      if (msgId) return this.editMessage(chatId, msgId, no, { inline_keyboard: [] });
+      const no =
+        lang === 'ru'
+          ? `🔍 <b>Товар не найден</b> по запросу «${query}»`
+          : `🔍 <b>Tovar topilmadi</b> «${query}» so'rovi bo'yicha`;
+      if (msgId)
+        return this.editMessage(chatId, msgId, no, { inline_keyboard: [] });
       return this.reply(chatId, no);
     }
 
-    const header = lang === 'ru'
-      ? `🔍 <b>Natijalar</b>: «${query}»  ·  ${all.length} шт.`
-      : `🔍 <b>Natijalar</b>: «${query}»  ·  ${all.length} ta`;
-    await this.sendProductItemsPage(chatId, all, lang, page, { prod_q: query }, header, msgId);
+    const header =
+      lang === 'ru'
+        ? `🔍 <b>Natijalar</b>: «${query}»  ·  ${all.length} шт.`
+        : `🔍 <b>Natijalar</b>: «${query}»  ·  ${all.length} ta`;
+    await this.sendProductItemsPage(
+      chatId,
+      all,
+      lang,
+      page,
+      { prod_q: query },
+      header,
+      msgId,
+    );
   }
 
   // ─── Shop list for a product item ─────────────────────────────────────────
 
-  private async showProductShops(chatId: string, piId: number, page: number, msgId?: number) {
+  private async showProductShops(
+    chatId: string,
+    piId: number,
+    page: number,
+    msgId?: number,
+  ) {
     const [user, session, pi] = await Promise.all([
       this.prisma.user.findFirst({ where: { chat_id: chatId } }),
       this.getSession(chatId),
       this.prisma.productItem.findUnique({
         where: { id: piId },
         select: {
-          id: true, name: true,
-          product: { select: { name: true, name_uz: true, name_ru: true, category: { select: { name: true } } } },
+          id: true,
+          name: true,
+          color: true,
+          size: true,
+          value: true,
+          unit_type: { select: { id: true, symbol: true } },
+          product: {
+            select: {
+              name: true,
+              name_uz: true,
+              name_ru: true,
+              category: { select: { name: true } },
+            },
+          },
         },
       }),
     ]);
@@ -823,44 +1165,74 @@ export class StoreTelegramService implements OnModuleInit {
     if (!pi) return;
 
     const spList = await this.prisma.shopProduct.findMany({
-      where: { product_item_id: piId, work_status: 'WORKING', count: { gt: 0 } },
+      where: {
+        product_item_id: piId,
+        work_status: 'WORKING',
+        count: { gt: 0 },
+      },
       select: {
-        id: true, price: true, count: true,
-        shop: { select: { id: true, name: true, address: true, lat: true, lon: true } },
+        id: true,
+        price: true,
+        bonus_price: true,
+        count: true,
+        shop: {
+          select: { id: true, name: true, address: true, lat: true, lon: true },
+        },
       },
       orderBy: { price: 'asc' },
     });
 
     if (spList.length === 0) {
-      const noShops = lang === 'ru' ? '😔 В магазинах нет этого товара.' : "😔 Do'konlarda bu tovar yo'q.";
-      if (msgId) return this.editMessage(chatId, msgId, noShops, { inline_keyboard: [] });
+      const noShops =
+        lang === 'ru'
+          ? '😔 В магазинах нет этого товара.'
+          : "😔 Do'konlarda bu tovar yo'q.";
+      if (msgId)
+        return this.editMessage(chatId, msgId, noShops, {
+          inline_keyboard: [],
+        });
       return this.reply(chatId, noShops);
     }
 
-    const userLoc = session?.lat && session?.lon ? { lat: session.lat, lon: session.lon } : null;
-    const cart    = this.parseCart(session?.cart);
+    const userLoc =
+      session?.lat && session?.lon
+        ? { lat: session.lat, lon: session.lon }
+        : null;
+    const cart = this.parseCart(session?.cart);
 
-    const pname = lang === 'ru'
-      ? (pi.product?.name_ru ?? pi.product?.name ?? pi.name ?? '—')
-      : (pi.product?.name_uz ?? pi.product?.name ?? pi.name ?? '—');
-    const variant  = pi.name && pi.name !== pname ? `  ·  ${pi.name}` : '';
+    const pname =
+      lang === 'ru'
+        ? (pi.product?.name_ru ?? pi.product?.name ?? pi.name ?? '—')
+        : (pi.product?.name_uz ?? pi.product?.name ?? pi.name ?? '—');
     const cat = pi.product?.category?.name ?? '';
     const PER_PAGE = 5;
-    const total      = spList.length;
+    const total = spList.length;
     const totalPages = Math.ceil(total / PER_PAGE);
-    const safePage   = Math.max(0, Math.min(page, totalPages - 1));
-    const slice      = spList.slice(safePage * PER_PAGE, (safePage + 1) * PER_PAGE);
+    const safePage = Math.max(0, Math.min(page, totalPages - 1));
+    const slice = spList.slice(safePage * PER_PAGE, (safePage + 1) * PER_PAGE);
     const nums = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'];
-    const div  = '━━━━━━━━━━━━━━━━━━━━━';
+    const div = '━━━━━━━━━━━━━━━━━━━━━';
 
     const minPrice = spList[0]?.price ?? 0;
     const maxPrice = spList[spList.length - 1]?.price ?? 0;
-    const priceRange = minPrice === maxPrice
-      ? `💰 ${minPrice.toLocaleString('ru-RU')} so'm`
-      : `💰 ${minPrice.toLocaleString('ru-RU')} – ${maxPrice.toLocaleString('ru-RU')} so'm`;
+    const priceRange =
+      minPrice === maxPrice
+        ? `💰 ${minPrice.toLocaleString('ru-RU')} so'm`
+        : `💰 ${minPrice.toLocaleString('ru-RU')} – ${maxPrice.toLocaleString('ru-RU')} so'm`;
+
+    const variantTags = [
+      (pi as any).value != null && (pi as any).unit_type?.symbol
+        ? `${(pi as any).value} ${(pi as any).unit_type.symbol}`
+        : '',
+      (pi as any).color ?? '',
+      (pi as any).size ?? '',
+    ]
+      .filter(Boolean)
+      .join(' · ');
 
     const header =
-      `📦 <b>${pname}${variant}</b>\n` +
+      `📦 <b>${pname}</b>\n` +
+      (variantTags ? `  <i>${variantTags}</i>\n` : '') +
       (cat ? `🗂 ${cat}\n` : '') +
       `${priceRange}   ·   🏪 ${total} ${lang === 'ru' ? 'маг.' : "do'kon"}`;
 
@@ -870,9 +1242,10 @@ export class StoreTelegramService implements OnModuleInit {
       let distLine = '';
       if (userLoc && shop.lat && shop.lon) {
         const d = this.haversine(userLoc.lat, userLoc.lon, shop.lat, shop.lon);
-        distLine = d < 1
-          ? `   ·   🚩 ${Math.round(d * 1000)} m`
-          : `   ·   🚩 ${d.toFixed(1)} km`;
+        distLine =
+          d < 1
+            ? `   ·   🚩 ${Math.round(d * 1000)} m`
+            : `   ·   🚩 ${d.toFixed(1)} km`;
       }
       const inCart = cart.find((c) => c.shop_product_id === sp.id);
       const cartTag = inCart ? `  ✅ ${inCart.count} ta` : '';
@@ -883,9 +1256,8 @@ export class StoreTelegramService implements OnModuleInit {
       );
     });
 
-    const pageInfo = totalPages > 1
-      ? `\n📄 ${safePage + 1} / ${totalPages}`
-      : '';
+    const pageInfo =
+      totalPages > 1 ? `\n📄 ${safePage + 1} / ${totalPages}` : '';
     const text = `${header}\n${div}\n\n${shopLines.join('\n\n')}\n${div}${pageInfo}`;
 
     const addRows = slice.map((sp) => {
@@ -898,31 +1270,60 @@ export class StoreTelegramService implements OnModuleInit {
       return [{ text: label, callback_data: `add:${sp.id}` }];
     });
 
-    const cartQty   = cart.reduce((s, c) => s + c.count, 0);
+    const cartQty = cart.reduce((s, c) => s + c.count, 0);
     const cartTotal = cart.reduce((s, c) => s + c.price * c.count, 0);
-    const cartBtn = cartQty > 0
-      ? { text: `🛒 ${lang === 'ru' ? 'Корзина' : 'Savat'} (${cartQty} ta · ${cartTotal.toLocaleString('ru-RU')} so'm)`, callback_data: 'view_cart' }
-      : { text: `🛒 ${lang === 'ru' ? 'Корзина пуста' : "Savat bo'sh"}`, callback_data: 'view_cart' };
+    const cartBtn =
+      cartQty > 0
+        ? {
+            text: `🛒 ${lang === 'ru' ? 'Корзина' : 'Savat'} (${cartQty} ta · ${cartTotal.toLocaleString('ru-RU')} so'm)`,
+            callback_data: 'view_cart',
+          }
+        : {
+            text: `🛒 ${lang === 'ru' ? 'Корзина пуста' : "Savat bo'sh"}`,
+            callback_data: 'view_cart',
+          };
 
-    const pageRow  = this.buildPageRow(totalPages, safePage, (p) => `pshops:${piId}:${p}`);
-    const backBtn  = { text: lang === 'ru' ? '◀️ Каталог' : '◀️ Katalog', callback_data: 'cat:0' };
+    const pageRow = this.buildPageRow(
+      totalPages,
+      safePage,
+      (p) => `pshops:${piId}:${p}`,
+    );
+    const backBtn = {
+      text: lang === 'ru' ? '◀️ Каталог' : '◀️ Katalog',
+      callback_data: 'cat:0',
+    };
     const keyboard: any[][] = [...addRows, [cartBtn]];
     if (pageRow.length) keyboard.push(pageRow);
     keyboard.push([backBtn]);
 
-    if (msgId) return this.editMessage(chatId, msgId, text, { inline_keyboard: keyboard });
+    if (msgId)
+      return this.editMessage(chatId, msgId, text, {
+        inline_keyboard: keyboard,
+      });
     return this.sendMessage(chatId, text, { inline_keyboard: keyboard });
   }
 
   // ─── Shop products page ────────────────────────────────────────────────────
 
-  private async renderShopProducts(chatId: string, shopId: number, page: number, msgId?: number) {
+  private async renderShopProducts(
+    chatId: string,
+    shopId: number,
+    page: number,
+    msgId?: number,
+  ) {
     const [user, session, shop] = await Promise.all([
       this.prisma.user.findFirst({ where: { chat_id: chatId } }),
       this.getSession(chatId),
       this.prisma.shop.findUnique({
         where: { id: shopId },
-        select: { id: true, name: true, image: true, address: true, lat: true, lon: true },
+        select: {
+          id: true,
+          name: true,
+          image: true,
+          address: true,
+          lat: true,
+          lon: true,
+        },
       }),
     ]);
     const lang = user?.lang ?? 'uz';
@@ -931,12 +1332,19 @@ export class StoreTelegramService implements OnModuleInit {
     const all = await this.prisma.shopProduct.findMany({
       where: { shop_id: shopId, work_status: 'WORKING', count: { gt: 0 } },
       select: {
-        id: true, price: true, count: true,
+        id: true,
+        price: true,
+        count: true,
         product_item: {
           select: {
             name: true,
             product: {
-              select: { name: true, name_uz: true, name_ru: true, category: { select: { name: true } } },
+              select: {
+                name: true,
+                name_uz: true,
+                name_ru: true,
+                category: { select: { name: true } },
+              },
             },
           },
         },
@@ -945,10 +1353,14 @@ export class StoreTelegramService implements OnModuleInit {
     });
 
     if (all.length === 0) {
-      const noItems = lang === 'ru'
-        ? `📭 В магазине <b>${shop.name}</b> пока нет товаров.`
-        : `📭 <b>${shop.name}</b> do'konida tovar yo'q.`;
-      if (msgId) return this.editMessage(chatId, msgId, noItems, { inline_keyboard: [] });
+      const noItems =
+        lang === 'ru'
+          ? `📭 В магазине <b>${shop.name}</b> пока нет товаров.`
+          : `📭 <b>${shop.name}</b> do'konida tovar yo'q.`;
+      if (msgId)
+        return this.editMessage(chatId, msgId, noItems, {
+          inline_keyboard: [],
+        });
       return this.reply(chatId, noItems);
     }
 
@@ -956,19 +1368,26 @@ export class StoreTelegramService implements OnModuleInit {
     const total = all.length;
     const totalPages = Math.ceil(total / this.SEARCH_PER_PAGE);
     const safePage = Math.max(0, Math.min(page, totalPages - 1));
-    const slice = all.slice(safePage * this.SEARCH_PER_PAGE, (safePage + 1) * this.SEARCH_PER_PAGE);
+    const slice = all.slice(
+      safePage * this.SEARCH_PER_PAGE,
+      (safePage + 1) * this.SEARCH_PER_PAGE,
+    );
     const nums = ['1️⃣', '2️⃣', '3️⃣'];
     const div = '━━━━━━━━━━━━━━━━━━━━━';
 
     const addressLine = shop.address ? `\n📍 ${shop.address}` : '';
-    const header = lang === 'ru'
-      ? `🏪 <b>${shop.name}</b>  ·  ${total} товаров${addressLine}`
-      : `🏪 <b>${shop.name}</b>  ·  ${total} tovar${addressLine}`;
+    const header =
+      lang === 'ru'
+        ? `🏪 <b>${shop.name}</b>  ·  ${total} товаров${addressLine}`
+        : `🏪 <b>${shop.name}</b>  ·  ${total} tovar${addressLine}`;
 
     const lines = slice.map((sp, i) => {
       const pname = this.getProductName(sp, lang);
       const itemVariant = sp.product_item?.name;
-      const displayName = itemVariant && itemVariant !== pname ? `${pname}  ·  ${itemVariant}` : pname;
+      const displayName =
+        itemVariant && itemVariant !== pname
+          ? `${pname}  ·  ${itemVariant}`
+          : pname;
       const cat = sp.product_item?.product?.category?.name ?? '';
       const price = (sp.price ?? 0).toLocaleString('ru-RU');
       const inCart = cart.find((c) => c.shop_product_id === sp.id);
@@ -979,9 +1398,10 @@ export class StoreTelegramService implements OnModuleInit {
       );
     });
 
-    const pageInfo = lang === 'ru'
-      ? `📄 Стр. ${safePage + 1} / ${totalPages}`
-      : `📄 ${safePage + 1} / ${totalPages}`;
+    const pageInfo =
+      lang === 'ru'
+        ? `📄 Стр. ${safePage + 1} / ${totalPages}`
+        : `📄 ${safePage + 1} / ${totalPages}`;
     const text = `${header}\n${div}\n\n${lines.join('\n\n')}\n\n${div}\n${pageInfo}`;
 
     const addRows = slice.map((sp) => {
@@ -994,13 +1414,24 @@ export class StoreTelegramService implements OnModuleInit {
       return [{ text: label, callback_data: `add:${sp.id}` }];
     });
 
-    const cartQty   = cart.reduce((s, c) => s + c.count, 0);
+    const cartQty = cart.reduce((s, c) => s + c.count, 0);
     const cartTotal = cart.reduce((s, c) => s + c.price * c.count, 0);
-    const cartBtn = cartQty > 0
-      ? { text: `🛒 ${lang === 'ru' ? 'Корзина' : 'Savat'} (${cartQty} ta · ${cartTotal.toLocaleString('ru-RU')} so'm)`, callback_data: 'view_cart' }
-      : { text: `🛒 ${lang === 'ru' ? 'Просмотр корзины' : "Savatni ko'rish"}`, callback_data: 'view_cart' };
+    const cartBtn =
+      cartQty > 0
+        ? {
+            text: `🛒 ${lang === 'ru' ? 'Корзина' : 'Savat'} (${cartQty} ta · ${cartTotal.toLocaleString('ru-RU')} so'm)`,
+            callback_data: 'view_cart',
+          }
+        : {
+            text: `🛒 ${lang === 'ru' ? 'Просмотр корзины' : "Savatni ko'rish"}`,
+            callback_data: 'view_cart',
+          };
 
-    const pageRow = this.buildPageRow(totalPages, safePage, (p) => `sp:${shopId}:${p}`);
+    const pageRow = this.buildPageRow(
+      totalPages,
+      safePage,
+      (p) => `sp:${shopId}:${p}`,
+    );
     const keyboard: any[][] = [...addRows, [cartBtn]];
     if (pageRow.length) keyboard.push(pageRow);
 
@@ -1013,11 +1444,14 @@ export class StoreTelegramService implements OnModuleInit {
     }
     // First open: send product list then location pin
     if (shopPhoto) {
-      await this.sendTgPhoto(chatId, shopPhoto, text, { inline_keyboard: keyboard });
+      await this.sendTgPhoto(chatId, shopPhoto, text, {
+        inline_keyboard: keyboard,
+      });
     } else {
       await this.sendMessage(chatId, text, { inline_keyboard: keyboard });
     }
-    if (shop.lat && shop.lon) await this.sendLocation(chatId, shop.lat, shop.lon);
+    if (shop.lat && shop.lon)
+      await this.sendLocation(chatId, shop.lat, shop.lon);
   }
 
   // ─── Checkout flow ─────────────────────────────────────────────────────────
@@ -1029,43 +1463,74 @@ export class StoreTelegramService implements OnModuleInit {
     ]);
     const lang = user?.lang ?? 'uz';
     if (!user) {
-      const noauth = lang === 'ru' ? '🔑 Сначала войдите: /login' : '🔑 Avval kiring: /login';
-      if (msgId) return this.editMessage(chatId, msgId, noauth, { inline_keyboard: [] });
+      const noauth =
+        lang === 'ru'
+          ? '🔑 Сначала войдите: /login'
+          : '🔑 Avval kiring: /login';
+      if (msgId)
+        return this.editMessage(chatId, msgId, noauth, { inline_keyboard: [] });
       return this.reply(chatId, noauth);
     }
     const cart = this.parseCart(session?.cart);
     if (cart.length === 0) {
-      const empty = lang === 'ru' ? "🛒 Корзина пуста." : "🛒 Savat bo'sh.";
-      if (msgId) return this.editMessage(chatId, msgId, empty, { inline_keyboard: [] });
+      const empty = lang === 'ru' ? '🛒 Корзина пуста.' : "🛒 Savat bo'sh.";
+      if (msgId)
+        return this.editMessage(chatId, msgId, empty, { inline_keyboard: [] });
       return this.reply(chatId, empty);
     }
     const total = cart.reduce((s, i) => s + i.price * i.count, 0);
     await this.upsertSession(chatId, { chk: null });
-    const text = lang === 'ru'
-      ? `📋 <b>Оформление заказа</b>\n🏪 Магазин: ${cart[0].shop_name}\n💰 Сумма: ${total.toLocaleString('ru-RU')} сум\n\nВыберите тип доставки:`
-      : `📋 <b>Buyurtmani rasmiylashtirish</b>\n🏪 Do'kon: ${cart[0].shop_name}\n💰 Jami: ${total.toLocaleString('ru-RU')} so'm\n\nYetkazib berish turini tanlang:`;
+    const text =
+      lang === 'ru'
+        ? `📋 <b>Оформление заказа</b>\n🏪 Магазин: ${cart[0].shop_name}\n💰 Сумма: ${total.toLocaleString('ru-RU')} сум\n\nВыберите тип доставки:`
+        : `📋 <b>Buyurtmani rasmiylashtirish</b>\n🏪 Do'kon: ${cart[0].shop_name}\n💰 Jami: ${total.toLocaleString('ru-RU')} so'm\n\nYetkazib berish turini tanlang:`;
     const kb = {
-      inline_keyboard: [[
-        { text: lang === 'ru' ? "🏪 Самовывоз"   : "🏪 O'zim olaman",   callback_data: 'chkdel:MARKET' },
-        { text: lang === 'ru' ? '🚚 Доставка'    : '🚚 Yetkazib berish', callback_data: 'chkdel:YANDEX' },
-      ]],
+      inline_keyboard: [
+        [
+          {
+            text: lang === 'ru' ? '🏪 Самовывоз' : "🏪 O'zim olaman",
+            callback_data: 'chkdel:MARKET',
+          },
+          {
+            text: lang === 'ru' ? '🚚 Доставка' : '🚚 Yetkazib berish',
+            callback_data: 'chkdel:YANDEX',
+          },
+        ],
+      ],
     };
     if (msgId) return this.editMessage(chatId, msgId, text, kb);
     return this.sendMessage(chatId, text, kb);
   }
 
-  private async handleCheckoutDelivery(chatId: string, msgId: number, deliveryType: 'MARKET' | 'YANDEX') {
-    const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
+  private async handleCheckoutDelivery(
+    chatId: string,
+    msgId: number,
+    deliveryType: 'MARKET' | 'YANDEX',
+  ) {
+    const user = await this.prisma.user.findFirst({
+      where: { chat_id: chatId },
+    });
     const lang = user?.lang ?? 'uz';
     const chk: CheckoutCtx = { delivery_type: deliveryType };
     if (deliveryType === 'YANDEX') {
-      await this.upsertSession(chatId, { chk: JSON.stringify(chk), state: 'waiting_checkout_address' });
-      const text = lang === 'ru'
-        ? "📍 Введите адрес доставки или отправьте геолокацию:\n\n<i>Например: Шайхантауский р-н, ул. Навруз, 12</i>"
-        : "📍 Yetkazib berish manzilingizni yozing yoki joylashuvingizni yuboring:\n\n<i>Masalan: Shayxontohur, Navruz ko'chasi 12</i>";
+      await this.upsertSession(chatId, {
+        chk: JSON.stringify(chk),
+        state: 'waiting_checkout_address',
+      });
+      const text =
+        lang === 'ru'
+          ? '📍 Введите адрес доставки или отправьте геолокацию:\n\n<i>Например: Шайхантауский р-н, ул. Навруз, 12</i>'
+          : "📍 Yetkazib berish manzilingizni yozing yoki joylashuvingizni yuboring:\n\n<i>Masalan: Shayxontohur, Navruz ko'chasi 12</i>";
       await this.editMessage(chatId, msgId, text, { inline_keyboard: [] });
       await this.sendMessage(chatId, lang === 'ru' ? '👇' : '👇', {
-        keyboard: [[{ text: `📍 ${lang === 'ru' ? 'Отправить геолокацию' : 'Joylashuvni yuborish'}`, request_location: true }]],
+        keyboard: [
+          [
+            {
+              text: `📍 ${lang === 'ru' ? 'Отправить геолокацию' : 'Joylashuvni yuborish'}`,
+              request_location: true,
+            },
+          ],
+        ],
         resize_keyboard: true,
         one_time_keyboard: true,
       });
@@ -1076,21 +1541,32 @@ export class StoreTelegramService implements OnModuleInit {
   }
 
   private async handleCheckoutAddress(chatId: string, address: string) {
-    const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
+    const user = await this.prisma.user.findFirst({
+      where: { chat_id: chatId },
+    });
     const lang = user?.lang ?? 'uz';
     const session = await this.getSession(chatId);
     const chk: CheckoutCtx = JSON.parse(session?.chk ?? '{}');
     chk.address = address;
-    await this.upsertSession(chatId, { state: 'idle', chk: JSON.stringify(chk) });
-    const ack = lang === 'ru'
-      ? `✅ Адрес принят: <b>${address}</b>\n\nВыберите способ оплаты:`
-      : `✅ Manzil qabul qilindi: <b>${address}</b>\n\nTo'lov turini tanlang:`;
+    await this.upsertSession(chatId, {
+      state: 'idle',
+      chk: JSON.stringify(chk),
+    });
+    const ack =
+      lang === 'ru'
+        ? `✅ Адрес принят: <b>${address}</b>\n\nВыберите способ оплаты:`
+        : `✅ Manzil qabul qilindi: <b>${address}</b>\n\nTo'lov turini tanlang:`;
     await this.reply(chatId, ack);
     return this.showPaymentSelection(chatId, lang, undefined);
   }
 
-  private async handleCheckoutLocationAddress(chatId: string, location: { latitude: number; longitude: number }) {
-    const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
+  private async handleCheckoutLocationAddress(
+    chatId: string,
+    location: { latitude: number; longitude: number },
+  ) {
+    const user = await this.prisma.user.findFirst({
+      where: { chat_id: chatId },
+    });
     const lang = user?.lang ?? 'uz';
     const session = await this.getSession(chatId);
     const chk: CheckoutCtx = JSON.parse(session?.chk ?? '{}');
@@ -1098,25 +1574,39 @@ export class StoreTelegramService implements OnModuleInit {
     chk.address = address;
     chk.lat = location.latitude;
     chk.lon = location.longitude;
-    await this.upsertSession(chatId, { state: 'idle', chk: JSON.stringify(chk) });
-    const ack = lang === 'ru'
-      ? `✅ Местоположение принято\n\nВыберите способ оплаты:`
-      : `✅ Joylashuv qabul qilindi\n\nTo'lov turini tanlang:`;
+    await this.upsertSession(chatId, {
+      state: 'idle',
+      chk: JSON.stringify(chk),
+    });
+    const ack =
+      lang === 'ru'
+        ? `✅ Местоположение принято\n\nВыберите способ оплаты:`
+        : `✅ Joylashuv qabul qilindi\n\nTo'lov turini tanlang:`;
     await this.sendMessage(chatId, ack, { remove_keyboard: true });
     return this.showPaymentSelection(chatId, lang, undefined);
   }
 
-  private async showPaymentSelection(chatId: string, lang: string, msgId?: number) {
-    const text = lang === 'ru' ? '💳 Выберите способ оплаты:' : "💳 To'lov turini tanlang:";
+  private async showPaymentSelection(
+    chatId: string,
+    lang: string,
+    msgId?: number,
+  ) {
+    const text =
+      lang === 'ru'
+        ? '💳 Выберите способ оплаты:'
+        : "💳 To'lov turini tanlang:";
     const kb = {
       inline_keyboard: [
         [
-          { text: '💵 ' + (lang === 'ru' ? 'Наличные' : 'Naqd pul'), callback_data: 'chkpay:CASH' },
+          {
+            text: '💵 ' + (lang === 'ru' ? 'Наличные' : 'Naqd pul'),
+            callback_data: 'chkpay:CASH',
+          },
         ],
         [
           { text: '� Click', callback_data: 'chkpay:CLICK' },
           { text: '🔴 Payme', callback_data: 'chkpay:PAYME' },
-          { text: '🟣 Uzum',  callback_data: 'chkpay:UZUM'  },
+          { text: '🟣 Uzum', callback_data: 'chkpay:UZUM' },
         ],
       ],
     };
@@ -1124,7 +1614,11 @@ export class StoreTelegramService implements OnModuleInit {
     return this.sendMessage(chatId, text, kb);
   }
 
-  private async handleCheckoutPayment(chatId: string, msgId: number, paymentType: string) {
+  private async handleCheckoutPayment(
+    chatId: string,
+    msgId: number,
+    paymentType: string,
+  ) {
     const [user, session] = await Promise.all([
       this.prisma.user.findFirst({ where: { chat_id: chatId } }),
       this.getSession(chatId),
@@ -1132,7 +1626,12 @@ export class StoreTelegramService implements OnModuleInit {
     const lang = user?.lang ?? 'uz';
     const cart = this.parseCart(session?.cart);
     if (cart.length === 0) {
-      return this.editMessage(chatId, msgId, lang === 'ru' ? "🛒 Корзина пуста." : "🛒 Savat bo'sh.", { inline_keyboard: [] });
+      return this.editMessage(
+        chatId,
+        msgId,
+        lang === 'ru' ? '🛒 Корзина пуста.' : "🛒 Savat bo'sh.",
+        { inline_keyboard: [] },
+      );
     }
     const chk: CheckoutCtx = JSON.parse(session?.chk ?? '{}');
     chk.payment_type = paymentType;
@@ -1141,32 +1640,47 @@ export class StoreTelegramService implements OnModuleInit {
     const shopName = cart[0].shop_name;
     const total = cart.reduce((s, i) => s + i.price * i.count, 0);
     const payLabel: Record<string, Record<string, string>> = {
-      CASH:  { uz: 'Naqd pul', ru: 'Наличные' },
-      CARD:  { uz: 'Karta',     ru: 'Карта' },
-      CLICK: { uz: 'Click',     ru: 'Click' },
-      PAYME: { uz: 'Payme',     ru: 'Payme' },
-      UZUM:  { uz: 'Uzum',      ru: 'Uzum'  },
+      CASH: { uz: 'Naqd pul', ru: 'Наличные' },
+      CARD: { uz: 'Karta', ru: 'Карта' },
+      CLICK: { uz: 'Click', ru: 'Click' },
+      PAYME: { uz: 'Payme', ru: 'Payme' },
+      UZUM: { uz: 'Uzum', ru: 'Uzum' },
     };
     const delLabel: Record<string, Record<string, string>> = {
-      MARKET: { uz: "O'zim olaman",    ru: 'Самовывоз' },
+      MARKET: { uz: "O'zim olaman", ru: 'Самовывоз' },
       YANDEX: { uz: 'Yetkazib berish', ru: 'Доставка' },
     };
     const pay = payLabel[paymentType]?.[lang] ?? paymentType;
-    const del = delLabel[chk.delivery_type ?? 'MARKET']?.[lang] ?? chk.delivery_type;
-    const addrLine = chk.address ? `\n📍 ${lang === 'ru' ? 'Адрес' : 'Manzil'}: ${chk.address}` : '';
+    const del =
+      delLabel[chk.delivery_type ?? 'MARKET']?.[lang] ?? chk.delivery_type;
+    const addrLine = chk.address
+      ? `\n📍 ${lang === 'ru' ? 'Адрес' : 'Manzil'}: ${chk.address}`
+      : '';
     const itemLines = cart
-      .map((it) => `  • ${it.name} × ${it.count} = ${(it.price * it.count).toLocaleString('ru-RU')} so'm`)
+      .map(
+        (it) =>
+          `  • ${it.name} × ${it.count} = ${(it.price * it.count).toLocaleString('ru-RU')} so'm`,
+      )
       .join('\n');
 
-    const text = lang === 'ru'
-      ? `✅ <b>Подтвердите заказ</b>\n🏪 Магазин: ${shopName}\n🚚 Доставка: ${del}${addrLine}\n💳 Оплата: ${pay}\n\n<b>Товары:</b>\n${itemLines}\n\n💰 Итого: <b>${total.toLocaleString('ru-RU')} сум</b>`
-      : `✅ <b>Buyurtmani tasdiqlang</b>\n🏪 Do'kon: ${shopName}\n🚚 Yetkazib berish: ${del}${addrLine}\n💳 To'lov: ${pay}\n\n<b>Tovarlar:</b>\n${itemLines}\n\n💰 Jami: <b>${total.toLocaleString('ru-RU')} so'm</b>`;
+    const text =
+      lang === 'ru'
+        ? `✅ <b>Подтвердите заказ</b>\n🏪 Магазин: ${shopName}\n🚚 Доставка: ${del}${addrLine}\n💳 Оплата: ${pay}\n\n<b>Товары:</b>\n${itemLines}\n\n💰 Итого: <b>${total.toLocaleString('ru-RU')} сум</b>`
+        : `✅ <b>Buyurtmani tasdiqlang</b>\n🏪 Do'kon: ${shopName}\n🚚 Yetkazib berish: ${del}${addrLine}\n💳 To'lov: ${pay}\n\n<b>Tovarlar:</b>\n${itemLines}\n\n💰 Jami: <b>${total.toLocaleString('ru-RU')} so'm</b>`;
 
     return this.editMessage(chatId, msgId, text, {
-      inline_keyboard: [[
-        { text: lang === 'ru' ? '✅ Подтвердить' : '✅ Tasdiqlash', callback_data: 'confirm_order' },
-        { text: lang === 'ru' ? '❌ Отмена'      : '❌ Bekor',       callback_data: 'cancel_order'  },
-      ]],
+      inline_keyboard: [
+        [
+          {
+            text: lang === 'ru' ? '✅ Подтвердить' : '✅ Tasdiqlash',
+            callback_data: 'confirm_order',
+          },
+          {
+            text: lang === 'ru' ? '❌ Отмена' : '❌ Bekor',
+            callback_data: 'cancel_order',
+          },
+        ],
+      ],
     });
   }
 
@@ -1177,11 +1691,21 @@ export class StoreTelegramService implements OnModuleInit {
     ]);
     const lang = user?.lang ?? 'uz';
     if (!user) {
-      return this.editMessage(chatId, msgId, lang === 'ru' ? '🔑 /login' : '🔑 /login', { inline_keyboard: [] });
+      return this.editMessage(
+        chatId,
+        msgId,
+        lang === 'ru' ? '🔑 /login' : '🔑 /login',
+        { inline_keyboard: [] },
+      );
     }
     const cart = this.parseCart(session?.cart);
     if (cart.length === 0) {
-      return this.editMessage(chatId, msgId, lang === 'ru' ? "🛒 Корзина пуста." : "🛒 Savat bo'sh.", { inline_keyboard: [] });
+      return this.editMessage(
+        chatId,
+        msgId,
+        lang === 'ru' ? '🛒 Корзина пуста.' : "🛒 Savat bo'sh.",
+        { inline_keyboard: [] },
+      );
     }
     const chk: CheckoutCtx = JSON.parse(session?.chk ?? '{}');
     const shopId = cart[0].shop_id;
@@ -1216,15 +1740,19 @@ export class StoreTelegramService implements OnModuleInit {
       });
 
       await this.upsertSession(chatId, { cart: null, chk: null });
-      const successText = lang === 'ru'
-        ? `🎉 <b>Заказ #${order.id} оформлен!</b>\n🏪 Магазин: ${cart[0].shop_name}\n💰 Сумма: ${total.toLocaleString('ru-RU')} сум\n⏳ Статус: В обработке\n\nОтслеживайте: /orders`
-        : `🎉 <b>#${order.id} buyurtmangiz qabul qilindi!</b>\n🏪 Do'kon: ${cart[0].shop_name}\n💰 Jami: ${total.toLocaleString('ru-RU')} so'm\n⏳ Holat: Jarayonda\n\nKuzating: /orders`;
-      await this.editMessage(chatId, msgId, successText, { inline_keyboard: [] });
+      const successText =
+        lang === 'ru'
+          ? `🎉 <b>Заказ #${order.id} оформлен!</b>\n🏪 Магазин: ${cart[0].shop_name}\n💰 Сумма: ${total.toLocaleString('ru-RU')} сум\n⏳ Статус: В обработке\n\nОтслеживайте: /orders`
+          : `🎉 <b>#${order.id} buyurtmangiz qabul qilindi!</b>\n🏪 Do'kon: ${cart[0].shop_name}\n💰 Jami: ${total.toLocaleString('ru-RU')} so'm\n⏳ Holat: Jarayonda\n\nKuzating: /orders`;
+      await this.editMessage(chatId, msgId, successText, {
+        inline_keyboard: [],
+      });
     } catch (e: any) {
       this.logger.error(`createOrderFromBot error: ${e?.message}`);
-      const errText = lang === 'ru'
-        ? `❌ Ошибка: ${e?.message ?? 'Неизвестная ошибка'}`
-        : `❌ Xatolik: ${e?.message ?? "Noma'lum xatolik"}`;
+      const errText =
+        lang === 'ru'
+          ? `❌ Ошибка: ${e?.message ?? 'Неизвестная ошибка'}`
+          : `❌ Xatolik: ${e?.message ?? "Noma'lum xatolik"}`;
       await this.editMessage(chatId, msgId, errText, { inline_keyboard: [] });
     }
   }
@@ -1236,7 +1764,11 @@ export class StoreTelegramService implements OnModuleInit {
     if (!phone.startsWith('+')) phone = '+' + phone;
     try {
       const result = await this.smsService.send({ phone });
-      await this.upsertSession(chatId, { state: 'waiting_code', sms_id: result.id, phone });
+      await this.upsertSession(chatId, {
+        state: 'waiting_code',
+        sms_id: result.id,
+        phone,
+      });
       const text =
         `✅ <b>SMS yuborildi!</b>\n\n` +
         `📱 Raqam: <code>${phone}</code>\n\n` +
@@ -1244,7 +1776,10 @@ export class StoreTelegramService implements OnModuleInit {
       await this.sendMessage(chatId, text, { remove_keyboard: true });
     } catch (e: any) {
       this.logger.error(`handleContact sms.send error: ${e?.message}`);
-      await this.reply(chatId, '❌ SMS yuborishda xatolik. Qayta /start yozing.');
+      await this.reply(
+        chatId,
+        '❌ SMS yuborishda xatolik. Qayta /start yozing.',
+      );
     }
   }
 
@@ -1254,7 +1789,12 @@ export class StoreTelegramService implements OnModuleInit {
       return this.reply(chatId, '❌ Sessiya topilmadi. /start yozing.');
     }
     try {
-      const result = await this.smsService.verify({ id: session.sms_id, code, chat_id: chatId, lang: 'uz' });
+      const result = await this.smsService.verify({
+        id: session.sms_id,
+        code,
+        chat_id: chatId,
+        lang: 'uz',
+      });
       await this.clearState(chatId);
       const url = `${this.storeUrl}?token=${result.access_token}`;
       const text =
@@ -1267,7 +1807,10 @@ export class StoreTelegramService implements OnModuleInit {
     } catch (e: any) {
       const msg = e?.message ?? '';
       if (msg.includes("noto'g'ri") || msg.includes('Kod')) {
-        await this.reply(chatId, "❌ Kod noto'g'ri. Qayta kiriting yoki /start yozing.");
+        await this.reply(
+          chatId,
+          "❌ Kod noto'g'ri. Qayta kiriting yoki /start yozing.",
+        );
       } else if (msg.includes('muddati')) {
         await this.clearState(chatId);
         await this.reply(chatId, '⏰ Kod muddati tugagan. /start yozing.');
@@ -1281,32 +1824,37 @@ export class StoreTelegramService implements OnModuleInit {
   // ─── Language / Help ───────────────────────────────────────────────────────
 
   private async cmdLanguage(chatId: string) {
-    await this.sendMessage(chatId, "🌐 Tilni tanlang / Выберите язык:", {
-      inline_keyboard: [[
-        { text: "🇺🇿 O'zbek",    callback_data: 'lang_uz' },
-        { text: '🇷🇺 Русский', callback_data: 'lang_ru' },
-      ]],
+    await this.sendMessage(chatId, '🌐 Tilni tanlang / Выберите язык:', {
+      inline_keyboard: [
+        [
+          { text: "🇺🇿 O'zbek", callback_data: 'lang_uz' },
+          { text: '🇷🇺 Русский', callback_data: 'lang_ru' },
+        ],
+      ],
     });
   }
 
   private async cmdHelp(chatId: string) {
-    const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
+    const user = await this.prisma.user.findFirst({
+      where: { chat_id: chatId },
+    });
     const lang = user?.lang ?? 'uz';
     const cmds = (lang === 'ru' ? STORE_BOT_COMMANDS_RU : STORE_BOT_COMMANDS)
       .map((c) => `/${c.command} — ${c.description}`)
       .join('\n');
-    const text = lang === 'ru'
-      ? `❓ <b>Список команд:</b>\n\n${cmds}\n\n🛒 Магазин: ${this.storeUrl}`
-      : `❓ <b>Komandalar ro'yxati:</b>\n\n${cmds}\n\n🛒 Do'kon: ${this.storeUrl}`;
+    const text =
+      lang === 'ru'
+        ? `❓ <b>Список команд:</b>\n\n${cmds}\n\n🛒 Магазин: ${this.storeUrl}`
+        : `❓ <b>Komandalar ro'yxati:</b>\n\n${cmds}\n\n🛒 Do'kon: ${this.storeUrl}`;
     await this.reply(chatId, text);
   }
 
   // ─── Callback handler ──────────────────────────────────────────────────────
 
   private async handleCallback(callbackQuery: any) {
-    const chatId    = String(callbackQuery.message?.chat?.id);
+    const chatId = String(callbackQuery.message?.chat?.id);
     const messageId = callbackQuery.message?.message_id as number;
-    const data      = callbackQuery.data as string ?? '';
+    const data = (callbackQuery.data as string) ?? '';
 
     if (data === 'noop') {
       await this.answerCallback(callbackQuery.id);
@@ -1316,10 +1864,14 @@ export class StoreTelegramService implements OnModuleInit {
     // ── Orders pagination: orders_N ─────────────────────────────────────────
     if (data.startsWith('orders_')) {
       const page = parseInt(data.split('_')[1], 10) || 0;
-      const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
+      const user = await this.prisma.user.findFirst({
+        where: { chat_id: chatId },
+      });
       if (user) {
         const lang = user.lang ?? 'uz';
-        const total = await this.prisma.order.count({ where: { user_id: user.id } });
+        const total = await this.prisma.order.count({
+          where: { user_id: user.id },
+        });
         const totalPages = Math.ceil(total / this.ORDERS_PER_PAGE);
         const safePage = Math.max(0, Math.min(page, totalPages - 1));
         const orders = await this.prisma.order.findMany({
@@ -1329,8 +1881,16 @@ export class StoreTelegramService implements OnModuleInit {
           orderBy: { createdt: 'desc' },
           include: { shop: { select: { name: true } } },
         });
-        const { text, keyboard } = this.buildOrdersPage(orders, lang, safePage, totalPages, total);
-        await this.editMessage(chatId, messageId, text, { inline_keyboard: keyboard });
+        const { text, keyboard } = this.buildOrdersPage(
+          orders,
+          lang,
+          safePage,
+          totalPages,
+          total,
+        );
+        await this.editMessage(chatId, messageId, text, {
+          inline_keyboard: keyboard,
+        });
       }
       await this.answerCallback(callbackQuery.id);
       return;
@@ -1348,25 +1908,53 @@ export class StoreTelegramService implements OnModuleInit {
       const lang = user?.lang ?? 'uz';
       const query = session?.shop_q ?? '';
       if (query) {
-        const userLoc = session?.lat && session?.lon ? { lat: session.lat, lon: session.lon } : undefined;
+        const userLoc =
+          session?.lat && session?.lon
+            ? { lat: session.lat, lon: session.lon }
+            : undefined;
         const all = await this.prisma.shop.findMany({
           where: { work_status: 'WORKING', name: { contains: query } },
           select: {
-            id: true, name: true, address: true, lat: true, lon: true,
-            _count: { select: { products: { where: { work_status: 'WORKING', count: { gt: 0 } } } } },
+            id: true,
+            name: true,
+            address: true,
+            lat: true,
+            lon: true,
+            _count: {
+              select: {
+                products: {
+                  where: { work_status: 'WORKING', count: { gt: 0 } },
+                },
+              },
+            },
           },
           take: 200,
         });
         const withDist = all.map((s) => ({
           ...s,
           _count: s._count,
-          dist: userLoc && s.lat && s.lon ? this.haversine(userLoc.lat, userLoc.lon, s.lat, s.lon) : null,
+          dist:
+            userLoc && s.lat && s.lon
+              ? this.haversine(userLoc.lat, userLoc.lon, s.lat, s.lon)
+              : null,
         }));
-        if (sort === 'n') withDist.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
-        else if (sort === 'c') withDist.sort((a, b) => b._count.products - a._count.products);
-        else withDist.sort((a, b) => (a.dist ?? Infinity) - (b.dist ?? Infinity));
-        const { text, keyboard } = this.buildShopsPage(withDist, query, lang, page, sort, userLoc);
-        await this.editMessage(chatId, messageId, text, { inline_keyboard: keyboard });
+        if (sort === 'n')
+          withDist.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
+        else if (sort === 'c')
+          withDist.sort((a, b) => b._count.products - a._count.products);
+        else
+          withDist.sort((a, b) => (a.dist ?? Infinity) - (b.dist ?? Infinity));
+        const { text, keyboard } = this.buildShopsPage(
+          withDist,
+          query,
+          lang,
+          page,
+          sort,
+          userLoc,
+        );
+        await this.editMessage(chatId, messageId, text, {
+          inline_keyboard: keyboard,
+        });
       }
       await this.answerCallback(callbackQuery.id);
       return;
@@ -1394,8 +1982,9 @@ export class StoreTelegramService implements OnModuleInit {
     if (data.startsWith('catsel:')) {
       const parts = data.split(':');
       const catId = parseInt(parts[1], 10);
-      const page  = parseInt(parts[2] ?? '0', 10) || 0;
-      if (catId) await this.cmdShowCategoryItems(chatId, catId, page, messageId);
+      const page = parseInt(parts[2] ?? '0', 10) || 0;
+      if (catId)
+        await this.cmdShowCategoryItems(chatId, catId, page, messageId);
       await this.answerCallback(callbackQuery.id);
       return;
     }
@@ -1403,8 +1992,8 @@ export class StoreTelegramService implements OnModuleInit {
     // ── Product item shop list: pshops:PI_ID or pshops:PI_ID:PAGE ────────────
     if (data.startsWith('pshops:')) {
       const parts = data.split(':');
-      const piId  = parseInt(parts[1], 10);
-      const page  = parseInt(parts[2] ?? '0', 10) || 0;
+      const piId = parseInt(parts[1], 10);
+      const page = parseInt(parts[2] ?? '0', 10) || 0;
       // Never pass messageId — shop list may be opened from a photo message which
       // cannot be edited as text. Always send a fresh text message.
       if (piId) await this.showProductShops(chatId, piId, page);
@@ -1422,10 +2011,21 @@ export class StoreTelegramService implements OnModuleInit {
         this.getSession(chatId),
       ]);
       const lang = user?.lang ?? 'uz';
-      const loc = session?.lat && session?.lon ? { lat: session.lat, lon: session.lon } : null;
+      const loc =
+        session?.lat && session?.lon
+          ? { lat: session.lat, lon: session.lon }
+          : null;
       if (loc) {
-        const { text, keyboard } = await this.buildNearbyContent(loc.lat, loc.lon, page, sort, lang);
-        await this.editMessage(chatId, messageId, text, { inline_keyboard: keyboard });
+        const { text, keyboard } = await this.buildNearbyContent(
+          loc.lat,
+          loc.lon,
+          page,
+          sort,
+          lang,
+        );
+        await this.editMessage(chatId, messageId, text, {
+          inline_keyboard: keyboard,
+        });
       }
       await this.answerCallback(callbackQuery.id);
       return;
@@ -1435,8 +2035,9 @@ export class StoreTelegramService implements OnModuleInit {
     if (data.startsWith('sp:')) {
       const [, shopIdStr, pgStr] = data.split(':');
       const shopId = parseInt(shopIdStr, 10);
-      const page   = parseInt(pgStr ?? '0', 10) || 0;
-      if (shopId) await this.renderShopProducts(chatId, shopId, page, messageId);
+      const page = parseInt(pgStr ?? '0', 10) || 0;
+      if (shopId)
+        await this.renderShopProducts(chatId, shopId, page, messageId);
       await this.answerCallback(callbackQuery.id);
       return;
     }
@@ -1465,7 +2066,10 @@ export class StoreTelegramService implements OnModuleInit {
       const cart = this.parseCart(session?.cart);
       const idx = cart.findIndex((c) => c.shop_product_id === spId);
       if (idx >= 0) {
-        const sp = await this.prisma.shopProduct.findUnique({ where: { id: spId }, select: { count: true } });
+        const sp = await this.prisma.shopProduct.findUnique({
+          where: { id: spId },
+          select: { count: true },
+        });
         if (sp && cart[idx].count < sp.count) cart[idx].count++;
         await this.setCart(chatId, cart);
       }
@@ -1493,11 +2097,24 @@ export class StoreTelegramService implements OnModuleInit {
     // ── Clear cart ──────────────────────────────────────────────────────────
     if (data === 'clrcart') {
       await this.setCart(chatId, []);
-      const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
+      const user = await this.prisma.user.findFirst({
+        where: { chat_id: chatId },
+      });
       const lang = user?.lang ?? 'uz';
-      await this.editMessage(chatId, messageId,
+      await this.editMessage(
+        chatId,
+        messageId,
         lang === 'ru' ? '🗑 Корзина очищена.' : '🗑 Savat tozalandi.',
-        { inline_keyboard: [[{ text: lang === 'ru' ? '🔍 Найти товары' : '🔍 Tovar qidirish', callback_data: 'search_prod' }]] },
+        {
+          inline_keyboard: [
+            [
+              {
+                text: lang === 'ru' ? '🔍 Найти товары' : '🔍 Tovar qidirish',
+                callback_data: 'search_prod',
+              },
+            ],
+          ],
+        },
       );
       await this.answerCallback(callbackQuery.id);
       return;
@@ -1517,7 +2134,11 @@ export class StoreTelegramService implements OnModuleInit {
       return;
     }
     if (data.startsWith('chkdel:')) {
-      await this.handleCheckoutDelivery(chatId, messageId, data.split(':')[1] as 'MARKET' | 'YANDEX');
+      await this.handleCheckoutDelivery(
+        chatId,
+        messageId,
+        data.split(':')[1] as 'MARKET' | 'YANDEX',
+      );
       await this.answerCallback(callbackQuery.id);
       return;
     }
@@ -1534,11 +2155,26 @@ export class StoreTelegramService implements OnModuleInit {
       return;
     }
     if (data === 'cancel_order') {
-      const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
+      const user = await this.prisma.user.findFirst({
+        where: { chat_id: chatId },
+      });
       const lang = user?.lang ?? 'uz';
-      await this.editMessage(chatId, messageId,
-        lang === 'ru' ? '❌ Заказ отменён. Корзина сохранена.' : '❌ Buyurtma bekor qilindi. Savat saqlab qolindi.',
-        { inline_keyboard: [[{ text: lang === 'ru' ? '🛒 Корзина' : '🛒 Savat', callback_data: 'view_cart' }]] },
+      await this.editMessage(
+        chatId,
+        messageId,
+        lang === 'ru'
+          ? '❌ Заказ отменён. Корзина сохранена.'
+          : '❌ Buyurtma bekor qilindi. Savat saqlab qolindi.',
+        {
+          inline_keyboard: [
+            [
+              {
+                text: lang === 'ru' ? '🛒 Корзина' : '🛒 Savat',
+                callback_data: 'view_cart',
+              },
+            ],
+          ],
+        },
       );
       await this.answerCallback(callbackQuery.id);
       return;
@@ -1546,14 +2182,24 @@ export class StoreTelegramService implements OnModuleInit {
 
     // ── Search type selection ────────────────────────────────────────────────
     if (data === 'search_shop' || data === 'search_prod') {
-      const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
+      const user = await this.prisma.user.findFirst({
+        where: { chat_id: chatId },
+      });
       const lang = user?.lang ?? 'uz';
       const isShop = data === 'search_shop';
-      await this.upsertSession(chatId, { state: isShop ? 'waiting_search_shop' : 'waiting_search_product' });
+      await this.upsertSession(chatId, {
+        state: isShop ? 'waiting_search_shop' : 'waiting_search_product',
+      });
       const prompt = isShop
-        ? (lang === 'ru' ? "🏪 Введите название магазина:" : "🏪 Do'kon nomini yozing:")
-        : (lang === 'ru' ? '📦 Введите название товара:'  : '📦 Tovar nomini yozing:');
-      await this.editMessage(chatId, messageId, prompt, { inline_keyboard: [] });
+        ? lang === 'ru'
+          ? '🏪 Введите название магазина:'
+          : "🏪 Do'kon nomini yozing:"
+        : lang === 'ru'
+          ? '📦 Введите название товара:'
+          : '📦 Tovar nomini yozing:';
+      await this.editMessage(chatId, messageId, prompt, {
+        inline_keyboard: [],
+      });
       await this.answerCallback(callbackQuery.id);
       return;
     }
@@ -1561,11 +2207,18 @@ export class StoreTelegramService implements OnModuleInit {
     // ── Language switch ──────────────────────────────────────────────────────
     if (data === 'lang_uz' || data === 'lang_ru') {
       const lang = data.replace('lang_', '');
-      const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
-      if (user) await this.prisma.user.update({ where: { id: user.id }, data: { lang } });
-      const text = lang === 'ru'
-        ? '✅ Язык изменён на <b>Русский</b> 🇷🇺'
-        : "✅ Til <b>O'zbek</b> ga o'zgartirildi 🇺🇿";
+      const user = await this.prisma.user.findFirst({
+        where: { chat_id: chatId },
+      });
+      if (user)
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: { lang },
+        });
+      const text =
+        lang === 'ru'
+          ? '✅ Язык изменён на <b>Русский</b> 🇷🇺'
+          : "✅ Til <b>O'zbek</b> ga o'zgartirildi 🇺🇿";
       await this.reply(chatId, text);
       // Update bot menu commands for this specific chat
       const cmds = lang === 'ru' ? STORE_BOT_COMMANDS_RU : STORE_BOT_COMMANDS;
@@ -1585,13 +2238,19 @@ export class StoreTelegramService implements OnModuleInit {
 
   // ─── Add-to-cart helper ────────────────────────────────────────────────────
 
-  private async handleAddToCart(chatId: string, spId: number, msgId?: number): Promise<string> {
+  private async handleAddToCart(
+    chatId: string,
+    spId: number,
+    msgId?: number,
+  ): Promise<string> {
     const [session, sp] = await Promise.all([
       this.getSession(chatId),
       this.prisma.shopProduct.findUnique({
         where: { id: spId },
         select: {
-          id: true, price: true, count: true,
+          id: true,
+          price: true,
+          count: true,
           shop: { select: { id: true, name: true } },
           product_item: {
             select: {
@@ -1604,30 +2263,39 @@ export class StoreTelegramService implements OnModuleInit {
     ]);
 
     if (!sp?.shop) return '❌ Tovar topilmadi';
-    const cart      = this.parseCart(session?.cart);
-    const shopId    = sp.shop.id;
-    const shopName  = sp.shop.name ?? '—';
-    const pname     = sp.product_item?.name
-      ?? sp.product_item?.product?.name_uz
-      ?? sp.product_item?.product?.name
-      ?? '—';
+    const cart = this.parseCart(session?.cart);
+    const shopId = sp.shop.id;
+    const shopName = sp.shop.name ?? '—';
+    const pname =
+      sp.product_item?.name ??
+      sp.product_item?.product?.name_uz ??
+      sp.product_item?.product?.name ??
+      '—';
 
     // Different shop in cart → ask to clear
     if (cart.length > 0 && cart[0].shop_id !== shopId) {
-      const user = await this.prisma.user.findFirst({ where: { chat_id: chatId } });
+      const user = await this.prisma.user.findFirst({
+        where: { chat_id: chatId },
+      });
       const lang = user?.lang ?? 'uz';
-      const text = lang === 'ru'
-        ? `⚠️ В корзине товары из <b>${cart[0].shop_name}</b>.\nОчистить и добавить из <b>${shopName}</b>?`
-        : `⚠️ Savatingizda <b>${cart[0].shop_name}</b> dan tovarlar bor.\n<b>${shopName}</b> dan qo'shish uchun savatni tozalaymizmi?`;
+      const text =
+        lang === 'ru'
+          ? `⚠️ В корзине товары из <b>${cart[0].shop_name}</b>.\nОчистить и добавить из <b>${shopName}</b>?`
+          : `⚠️ Savatingizda <b>${cart[0].shop_name}</b> dan tovarlar bor.\n<b>${shopName}</b> dan qo'shish uchun savatni tozalaymizmi?`;
       if (msgId) {
         await this.editMessage(chatId, msgId, text, {
-          inline_keyboard: [[
-            { text: lang === 'ru' ? '✅ Ha, tozala' : '✅ Ha, tozala', callback_data: `cart_ok:${spId}` },
-            { text: "❌ Yo'q",                                          callback_data: 'noop' },
-          ]],
+          inline_keyboard: [
+            [
+              {
+                text: lang === 'ru' ? '✅ Ha, tozala' : '✅ Ha, tozala',
+                callback_data: `cart_ok:${spId}`,
+              },
+              { text: "❌ Yo'q", callback_data: 'noop' },
+            ],
+          ],
         });
       }
-      return lang === 'ru' ? "⚠️ Разные магазины!" : "⚠️ Boshqa do'kon!";
+      return lang === 'ru' ? '⚠️ Разные магазины!' : "⚠️ Boshqa do'kon!";
     }
 
     const existing = cart.find((c) => c.shop_product_id === spId);
@@ -1637,7 +2305,14 @@ export class StoreTelegramService implements OnModuleInit {
       return `✅ ${pname} (${existing.count} ta)`;
     }
 
-    cart.push({ shop_product_id: spId, name: pname, price: sp.price ?? 0, count: 1, shop_id: shopId, shop_name: shopName });
+    cart.push({
+      shop_product_id: spId,
+      name: pname,
+      price: sp.price ?? 0,
+      count: 1,
+      shop_id: shopId,
+      shop_name: shopName,
+    });
     await this.setCart(chatId, cart);
     return `✅ Qo'shildi: ${pname}`;
   }
@@ -1645,7 +2320,11 @@ export class StoreTelegramService implements OnModuleInit {
   // ─── Pagination ────────────────────────────────────────────────────────────
 
   /** Numbered page buttons row: ·N· = current, « = fast-back, » = fast-forward */
-  private buildPageRow(totalPages: number, current: number, cbOf: (p: number) => string): any[] {
+  private buildPageRow(
+    totalPages: number,
+    current: number,
+    cbOf: (p: number) => string,
+  ): any[] {
     if (totalPages <= 1) return [];
     const MAX = 5;
     let lo = Math.max(0, current - 2);
@@ -1653,11 +2332,15 @@ export class StoreTelegramService implements OnModuleInit {
     if (hi - lo < MAX - 1) lo = Math.max(0, hi - MAX + 1);
 
     const row: any[] = [];
-    if (lo > 0)              row.push({ text: '«',           callback_data: cbOf(0) });
+    if (lo > 0) row.push({ text: '«', callback_data: cbOf(0) });
     for (let p = lo; p <= hi; p++) {
-      row.push({ text: p === current ? `·${p + 1}·` : `${p + 1}`, callback_data: cbOf(p) });
+      row.push({
+        text: p === current ? `·${p + 1}·` : `${p + 1}`,
+        callback_data: cbOf(p),
+      });
     }
-    if (hi < totalPages - 1) row.push({ text: '»',           callback_data: cbOf(totalPages - 1) });
+    if (hi < totalPages - 1)
+      row.push({ text: '»', callback_data: cbOf(totalPages - 1) });
     return row;
   }
 
@@ -1665,11 +2348,17 @@ export class StoreTelegramService implements OnModuleInit {
 
   private parseCart(cartJson?: string | null): CartItem[] {
     if (!cartJson) return [];
-    try { return JSON.parse(cartJson); } catch { return []; }
+    try {
+      return JSON.parse(cartJson);
+    } catch {
+      return [];
+    }
   }
 
   private async setCart(chatId: string, items: CartItem[]) {
-    return this.upsertSession(chatId, { cart: items.length ? JSON.stringify(items) : null });
+    return this.upsertSession(chatId, {
+      cart: items.length ? JSON.stringify(items) : null,
+    });
   }
 
   // ─── Session helpers (DB-backed) ────────────────────────────────────────────
@@ -1678,14 +2367,22 @@ export class StoreTelegramService implements OnModuleInit {
     return this.prisma.botSession.findUnique({ where: { chat_id: chatId } });
   }
 
-  private async upsertSession(chatId: string, data: Partial<{
-    state: string; sms_id: string | null; phone: string | null;
-    lat: number | null; lon: number | null;
-    shop_q: string | null; prod_q: string | null;
-    cart: string | null; chk: string | null;
-  }>) {
+  private async upsertSession(
+    chatId: string,
+    data: Partial<{
+      state: string;
+      sms_id: string | null;
+      phone: string | null;
+      lat: number | null;
+      lon: number | null;
+      shop_q: string | null;
+      prod_q: string | null;
+      cart: string | null;
+      chk: string | null;
+    }>,
+  ) {
     return this.prisma.botSession.upsert({
-      where:  { chat_id: chatId },
+      where: { chat_id: chatId },
       update: data,
       create: { chat_id: chatId, ...data },
     });
@@ -1693,14 +2390,20 @@ export class StoreTelegramService implements OnModuleInit {
 
   private async clearState(chatId: string) {
     return this.prisma.botSession.upsert({
-      where:  { chat_id: chatId },
+      where: { chat_id: chatId },
       update: { state: 'idle', sms_id: null, phone: null },
       create: { chat_id: chatId, state: 'idle' },
     });
   }
 
   /** Edit a photo message (media + caption + keyboard); falls back to editMessageText if needed */
-  private async editTgMedia(chatId: string, msgId: number, photo: string, caption: string, keyboard: any[][]) {
+  private async editTgMedia(
+    chatId: string,
+    msgId: number,
+    photo: string,
+    caption: string,
+    keyboard: any[][],
+  ) {
     try {
       await axios.post(
         `https://api.telegram.org/bot${this.token}/editMessageMedia`,
@@ -1713,7 +2416,9 @@ export class StoreTelegramService implements OnModuleInit {
         { timeout: 15000 },
       );
     } catch {
-      await this.editMessage(chatId, msgId, caption, { inline_keyboard: keyboard });
+      await this.editMessage(chatId, msgId, caption, {
+        inline_keyboard: keyboard,
+      });
     }
   }
 
@@ -1726,16 +2431,29 @@ export class StoreTelegramService implements OnModuleInit {
   }
 
   /** sendPhoto via Bot API; falls back to sendMessage if photo fails */
-  private async sendTgPhoto(chatId: string, photo: string, caption: string, replyMarkup?: any): Promise<void> {
+  private async sendTgPhoto(
+    chatId: string,
+    photo: string,
+    caption: string,
+    replyMarkup?: any,
+  ): Promise<void> {
     try {
       await axios.post(
         `https://api.telegram.org/bot${this.token}/sendPhoto`,
-        { chat_id: chatId, photo, caption, parse_mode: 'HTML', reply_markup: replyMarkup ?? null },
+        {
+          chat_id: chatId,
+          photo,
+          caption,
+          parse_mode: 'HTML',
+          reply_markup: replyMarkup ?? null,
+        },
         { timeout: 15000 },
       );
     } catch {
       if (replyMarkup) {
-        await this.sendMessage(chatId, caption, { inline_keyboard: replyMarkup.inline_keyboard });
+        await this.sendMessage(chatId, caption, {
+          inline_keyboard: replyMarkup.inline_keyboard,
+        });
       } else {
         await this.reply(chatId, caption);
       }
@@ -1744,25 +2462,34 @@ export class StoreTelegramService implements OnModuleInit {
 
   // ─── Haversine ─────────────────────────────────────────────────────────────
 
-  private haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  private haversine(
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number,
+  ): number {
     const R = 6371;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
     const a =
       Math.sin(dLat / 2) ** 2 +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) ** 2;
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
   // ─── Product name helper ───────────────────────────────────────────────────
 
   private getProductName(sp: any, lang: string): string {
-    return (lang === 'ru'
-      ? sp.product_item?.product?.name_ru
-      : sp.product_item?.product?.name_uz)
-      ?? sp.product_item?.name
-      ?? sp.product_item?.product?.name
-      ?? '—';
+    return (
+      (lang === 'ru'
+        ? sp.product_item?.product?.name_ru
+        : sp.product_item?.product?.name_uz) ??
+      sp.product_item?.name ??
+      sp.product_item?.product?.name ??
+      '—'
+    );
   }
 
   // ─── Order-status notifications (called from OrderService) ─────────────────
@@ -1774,17 +2501,21 @@ export class StoreTelegramService implements OnModuleInit {
     const shop = order.shop;
     const amount = (order.amount ?? 0).toLocaleString('ru-RU');
     if ((order.delivery_type ?? '') === 'MARKET') {
-      const text = lang === 'ru'
-        ? `✅ <b>Заказ #${order.id} принят!</b>\n🏪 ${shop?.name ?? '—'}\n💰 ${amount} сум\n\n🛒 Самовывоз\n📍 ${shop?.address ?? '—'}\n\n/orders`
-        : `✅ <b>#${order.id} buyurtmangiz qabul qilindi!</b>\n🏪 ${shop?.name ?? '—'}\n💰 ${amount} so'm\n\n🛒 Olib ketish\n📍 ${shop?.address ?? '—'}\n\n/orders`;
+      const text =
+        lang === 'ru'
+          ? `✅ <b>Заказ #${order.id} принят!</b>\n🏪 ${shop?.name ?? '—'}\n💰 ${amount} сум\n\n🛒 Самовывоз\n📍 ${shop?.address ?? '—'}\n\n/orders`
+          : `✅ <b>#${order.id} buyurtmangiz qabul qilindi!</b>\n🏪 ${shop?.name ?? '—'}\n💰 ${amount} so'm\n\n🛒 Olib ketish\n📍 ${shop?.address ?? '—'}\n\n/orders`;
       await this.reply(chatId, text);
-      if (shop?.lat && shop?.lon) await this.sendLocation(chatId, shop.lat, shop.lon);
+      if (shop?.lat && shop?.lon)
+        await this.sendLocation(chatId, shop.lat, shop.lon);
     } else {
-      const text = lang === 'ru'
-        ? `✅ <b>Заказ #${order.id} принят!</b>\n🏪 ${shop?.name ?? '—'}\n💰 ${amount} сум\n\n🚚 Доставка\n📍 ${order.address ?? '—'}\n⏰ В течение 24 часов\n\n/orders`
-        : `✅ <b>#${order.id} buyurtmangiz qabul qilindi!</b>\n🏪 ${shop?.name ?? '—'}\n💰 ${amount} so'm\n\n🚚 Yetkazib berish\n📍 ${order.address ?? '—'}\n⏰ 24 soat ichida\n\n/orders`;
+      const text =
+        lang === 'ru'
+          ? `✅ <b>Заказ #${order.id} принят!</b>\n🏪 ${shop?.name ?? '—'}\n💰 ${amount} сум\n\n🚚 Доставка\n📍 ${order.address ?? '—'}\n⏰ В течение 24 часов\n\n/orders`
+          : `✅ <b>#${order.id} buyurtmangiz qabul qilindi!</b>\n🏪 ${shop?.name ?? '—'}\n💰 ${amount} so'm\n\n🚚 Yetkazib berish\n📍 ${order.address ?? '—'}\n⏰ 24 soat ichida\n\n/orders`;
       await this.reply(chatId, text);
-      if (order.lat && order.lon) await this.sendLocation(chatId, order.lat, order.lon);
+      if (order.lat && order.lon)
+        await this.sendLocation(chatId, order.lat, order.lon);
     }
   }
 
@@ -1792,9 +2523,10 @@ export class StoreTelegramService implements OnModuleInit {
     const chatId = await this.getChatIdByOrder(order);
     if (!chatId) return;
     const lang = await this.getUserLang(order);
-    const text = lang === 'ru'
-      ? `🏁 <b>Заказ #${order.id} завершён.</b>\nПодтвердите получение через /orders`
-      : `🏁 <b>#${order.id} buyurtmangiz tugatildi.</b>\nQabul qilganingizni tasdiqlang: /orders`;
+    const text =
+      lang === 'ru'
+        ? `🏁 <b>Заказ #${order.id} завершён.</b>\nПодтвердите получение через /orders`
+        : `🏁 <b>#${order.id} buyurtmangiz tugatildi.</b>\nQabul qilganingizni tasdiqlang: /orders`;
     await this.reply(chatId, text);
   }
 
@@ -1802,9 +2534,10 @@ export class StoreTelegramService implements OnModuleInit {
     const chatId = await this.getChatIdByOrder(order);
     if (!chatId) return;
     const lang = await this.getUserLang(order);
-    const text = lang === 'ru'
-      ? `🎉 <b>Заказ #${order.id} подтверждён!</b>\nСпасибо за покупку в Diametr.uz`
-      : `🎉 <b>#${order.id} buyurtmangiz tasdiqlandi!</b>\nDiametr.uz dan xarid qilganingiz uchun rahmat`;
+    const text =
+      lang === 'ru'
+        ? `🎉 <b>Заказ #${order.id} подтверждён!</b>\nСпасибо за покупку в Diametr.uz`
+        : `🎉 <b>#${order.id} buyurtmangiz tasdiqlandi!</b>\nDiametr.uz dan xarid qilganingiz uchun rahmat`;
     await this.reply(chatId, text);
   }
 
@@ -1812,23 +2545,28 @@ export class StoreTelegramService implements OnModuleInit {
     const chatId = await this.getChatIdByOrder(order);
     if (!chatId) return;
     const lang = await this.getUserLang(order);
-    const text = lang === 'ru'
-      ? `❌ <b>Заказ #${order.id} отменён.</b>`
-      : `❌ <b>#${order.id} buyurtmangiz bekor qilindi.</b>`;
+    const text =
+      lang === 'ru'
+        ? `❌ <b>Заказ #${order.id} отменён.</b>`
+        : `❌ <b>#${order.id} buyurtmangiz bekor qilindi.</b>`;
     await this.reply(chatId, text);
   }
 
   private async getChatIdByOrder(order: any): Promise<string | null> {
     if (order.user?.chat_id) return order.user.chat_id;
     if (!order.user_id) return null;
-    const user = await this.prisma.user.findUnique({ where: { id: order.user_id } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: order.user_id },
+    });
     return user?.chat_id ?? null;
   }
 
   private async getUserLang(order: any): Promise<string> {
     if (order.user?.lang) return order.user.lang;
     if (!order.user_id) return 'uz';
-    const user = await this.prisma.user.findUnique({ where: { id: order.user_id } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: order.user_id },
+    });
     return user?.lang ?? 'uz';
   }
 
@@ -1854,18 +2592,34 @@ export class StoreTelegramService implements OnModuleInit {
   }
 
   private async answerCallback(callbackQueryId: string, text?: string) {
-    await axios.post(
-      `https://api.telegram.org/bot${this.token}/answerCallbackQuery`,
-      { callback_query_id: callbackQueryId, ...(text ? { text, show_alert: false } : {}) },
-      { timeout: 5000 },
-    ).catch(() => {});
+    await axios
+      .post(
+        `https://api.telegram.org/bot${this.token}/answerCallbackQuery`,
+        {
+          callback_query_id: callbackQueryId,
+          ...(text ? { text, show_alert: false } : {}),
+        },
+        { timeout: 5000 },
+      )
+      .catch(() => {});
   }
 
-  private async editMessage(chatId: string, messageId: number, text: string, replyMarkup?: any) {
+  private async editMessage(
+    chatId: string,
+    messageId: number,
+    text: string,
+    replyMarkup?: any,
+  ) {
     try {
       await axios.post(
         `https://api.telegram.org/bot${this.token}/editMessageText`,
-        { chat_id: chatId, message_id: messageId, text, parse_mode: 'HTML', reply_markup: replyMarkup },
+        {
+          chat_id: chatId,
+          message_id: messageId,
+          text,
+          parse_mode: 'HTML',
+          reply_markup: replyMarkup,
+        },
         { timeout: 8000 },
       );
     } catch (e: any) {
@@ -1889,7 +2643,12 @@ export class StoreTelegramService implements OnModuleInit {
     try {
       await axios.post(
         `https://api.telegram.org/bot${this.token}/sendMessage`,
-        { chat_id: chatId, text, parse_mode: 'HTML', reply_markup: replyMarkup },
+        {
+          chat_id: chatId,
+          text,
+          parse_mode: 'HTML',
+          reply_markup: replyMarkup,
+        },
         { timeout: 8000 },
       );
     } catch (e: any) {

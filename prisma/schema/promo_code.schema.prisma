@@ -8,6 +8,9 @@ model PromoCode {
     is_active         Boolean        @default(true)
     expires_at        DateTime?      // null = never expires
 
+    shop_id   Int?
+    shop      Shop? @relation(fields: [shop_id], references: [id])
+
     uses       PromoCodeUse[]
     orders     Order[]
 

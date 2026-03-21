@@ -35,39 +35,17 @@ export class ProductService {
 
   async findByCategory(category_id: string | undefined) {
     this.logger.log('findByCategory');
-    //   const products = await this.prisma.product.findMany({
-    //     where : {
-    //        category_id: parseInt(category_id.toString())
-    //     },
-    //    include: {
-    //   items: {
-    //     include: {
-    //       shop_products: {
-    //         include: {
-    //           _count: {
-    //             select: { order_products: true }, // har shopProduct uchun orderlar soni
-    //           },
-    //         },
-    //       },
-    //     },
-    //   },
-    // },
-    //   });
-
-    const products = await this.prisma.$queryRaw<
-      Array<{ id: number; name: string; image: string; count: number }>
-    >`
-  SELECT p.id, p.name, p.image,
-         COALESCE(SUM(op.count), 0) AS count
-  FROM Product p
-  LEFT JOIN ProductItem pi ON pi.product_id = p.id
-  LEFT JOIN ShopProduct sp ON sp.product_item_id = pi.id
-  LEFT JOIN OrderProduct op ON op.shop_product_id = sp.id
-  WHERE p.category_id = ${category_id ? parseInt(category_id) : null}
-  GROUP BY p.id
-`;
-
-    return products;
+    const cid = category_id ? parseInt(category_id, 10) : undefined;
+    return await this.prisma.product.findMany({
+      where: {
+        work_status: 'WORKING',
+        ...(cid !== undefined && !isNaN(cid) ? { category_id: cid } : {}),
+      },
+      include: {
+        category: { select: { id: true, name: true, name_uz: true, name_ru: true } },
+      },
+      orderBy: { id: 'desc' },
+    });
   }
   async findOne(id: number) {
     this.logger.log('findOne');

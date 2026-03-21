@@ -32,13 +32,16 @@ export class ProductItemService {
 
   async findAll() {
     this.logger.log('findAll');
-    const productItems = await this.prisma.productItem.findMany();
+    const productItems = await this.prisma.productItem.findMany({
+      include: { unit_type: true, product: { include: { category: true } } },
+    });
     return productItems;
   }
   async findOne(id: number) {
     this.logger.log('findOne');
     let productItem = await this.prisma.productItem.findUnique({
       where: { id },
+      include: { unit_type: true, product: { include: { category: true } } },
     });
     if (!productItem) {
       throw new NotFoundException('productItem not found');

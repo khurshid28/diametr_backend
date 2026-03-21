@@ -1,0 +1,12 @@
+model UnitType {
+    id     Int     @id @default(autoincrement())
+    name   String  // "Kilogramm"
+    symbol String  // "kg"
+
+    product_items ProductItem[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("unittype")
+}

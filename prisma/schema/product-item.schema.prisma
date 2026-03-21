@@ -4,6 +4,12 @@ model ProductItem {
     desc        String?
     image       String?
 
+    // Variant details
+    unit_type_id Int?
+    unit_type    UnitType? @relation(fields: [unit_type_id], references: [id])
+    value        Decimal?  @db.Decimal(10, 3) // e.g. 1.5 (litres), 2.5 (kg)
+    color        String?   // e.g. "Qizil", "#FF0000"
+    size         String?   // e.g. "120x80", "XL"
 
     product_id Int?
     product    Product? @relation(fields: [product_id], references: [id])

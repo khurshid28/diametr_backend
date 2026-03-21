@@ -59,6 +59,13 @@ export class CreatePromoCodeDto {
   @IsOptional()
   @IsISO8601()
   expires_at?: string;
+
+  @ApiPropertyOptional({ example: 3, description: 'Dokon ID (faqat shu dokon uchun)' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  shop_id?: number;
 }
 
 export class UpdatePromoCodeDto {
@@ -96,4 +103,10 @@ export class UpdatePromoCodeDto {
 
   @IsOptional()
   is_active?: boolean;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  shop_id?: number;
 }

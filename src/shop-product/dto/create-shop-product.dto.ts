@@ -31,4 +31,9 @@ export class CreateShopProductDto {
   @IsNumber()
   @Min(1)
   count: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  bonus_price?: number;
 }

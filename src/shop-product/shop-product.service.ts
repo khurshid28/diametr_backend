@@ -38,6 +38,60 @@ export class ShopProductService {
     const shopProducts = await this.prisma.shopProduct.findMany();
     return shopProducts;
   }
+
+  async findAllInProduct(product_id: string, shop_id: string) {
+    this.logger.log('findAllInProduct');
+    const pId = parseInt(product_id);
+    const sId = parseInt(shop_id);
+
+    const shopProducts = await this.prisma.shopProduct.findMany({
+      where: {
+        shop_id: sId,
+        work_status: 'WORKING',
+        product_item: { product_id: pId },
+      },
+      include: {
+        product_item: { select: { id: true, name: true, image: true, desc: true } },
+      },
+      orderBy: { price: 'asc' },
+    });
+
+    const items = shopProducts.map((sp) => ({
+      id: sp.id,
+      price: sp.price,
+      count: sp.count,
+      name: sp.product_item?.name,
+      image: sp.product_item?.image,
+      desc: sp.product_item?.desc,
+    }));
+
+    // Recommendations: other products in the same shop
+    const otherSPs = await this.prisma.shopProduct.findMany({
+      where: {
+        shop_id: sId,
+        work_status: 'WORKING',
+        NOT: { product_item: { product_id: pId } },
+      },
+      include: {
+        product_item: {
+          include: { product: { select: { id: true, name: true, image: true } } },
+        },
+      },
+      take: 20,
+    });
+
+    const seenIds = new Set<number>();
+    const tavsiyalar = otherSPs
+      .map((sp) => sp.product_item?.product)
+      .filter(
+        (p): p is { id: number; name: string | null; image: string | null } =>
+          p != null && !seenIds.has(p.id) && !!seenIds.add(p.id),
+      )
+      .slice(0, 10)
+      .map((p) => ({ id: p.id, name: p.name, image: p.image, count: 0 }));
+
+    return { items, tavsiyalar };
+  }
   async findOne(id: number) {
     this.logger.log('findOne');
     let shopProduct = await this.prisma.shopProduct.findUnique({

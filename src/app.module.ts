@@ -25,6 +25,7 @@ import { AxiosClientModule } from './_axios_client/axios_client.module';
 import { PromoCodeModule } from './promo-code/promo-code.module';
 import { TelegramModule } from './telegram/telegram.module';
 import { StoreTelegramModule } from './store-telegram/store-telegram.module';
+import { UnitTypeModule } from './unit-type/unit-type.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { StoreTelegramModule } from './store-telegram/store-telegram.module';
     PromoCodeModule,
     TelegramModule,
     StoreTelegramModule,
+    UnitTypeModule,
   ],
   controllers: [AppController],
   providers: [AppService,  ],

@@ -25,7 +25,11 @@ export class PromoCodeController {
   @Post()
   @UseGuards(RolesGuardFactory([Role.ADMIN, Role.SUPER]))
   @ApiOperation({ summary: 'Promo kod yaratish (ADMIN/SUPER)' })
-  create(@Body() dto: CreatePromoCodeDto) {
+  create(@Body() dto: CreatePromoCodeDto, @Request() req: any) {
+    // ADMIN automatically scoped to their shop
+    if (req['user']?.role === Role.ADMIN && req['user']?.shop_id) {
+      dto.shop_id = req['user'].shop_id;
+    }
     return this.promoCodeService.create(dto);
   }
 
@@ -33,8 +37,9 @@ export class PromoCodeController {
   @Get('/all')
   @UseGuards(RolesGuardFactory([Role.ADMIN, Role.SUPER]))
   @ApiOperation({ summary: 'Barcha promo kodlar (ADMIN/SUPER)' })
-  findAll() {
-    return this.promoCodeService.findAll();
+  findAll(@Request() req: any) {
+    const shopId = req['user']?.role === Role.ADMIN ? req['user']?.shop_id : undefined;
+    return this.promoCodeService.findAll(shopId);
   }
 
   /** User: validate a promo code before order */

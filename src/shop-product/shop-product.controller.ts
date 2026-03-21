@@ -6,10 +6,11 @@ import {
   Param,
   Delete,
   Put,
+  Query,
   UseGuards,
   Req,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ShopProductService } from './shop-product.service';
 import { CreateShopProductDto } from './dto/create-shop-product.dto';
 import { UpdateShopProductDto } from './dto/update-shop-product.dto';
@@ -30,9 +31,20 @@ export class ShopProductController {
   }
 
   @Get('/all')
-  @ApiOperation({ summary: 'Barcha do’kon mahsulotlari ro’yxati' })
+  @ApiOperation({ summary: 'Barcha do\'kon mahsulotlari ro\'yxati' })
   findAll() {
     return this.shopProductService.findAll();
+  }
+
+  @Get('/all-in-product')
+  @ApiOperation({ summary: 'Mahsulot variantlari va tavsiyalar (product_id + shop_id)' })
+  @ApiQuery({ name: 'product_id', required: true, type: Number })
+  @ApiQuery({ name: 'shop_id', required: true, type: Number })
+  findAllInProduct(
+    @Query('product_id') product_id: string,
+    @Query('shop_id') shop_id: string,
+  ) {
+    return this.shopProductService.findAllInProduct(product_id, shop_id);
   }
 
   @Get(':id')

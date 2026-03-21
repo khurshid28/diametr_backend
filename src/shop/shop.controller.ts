@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Body, Param, Delete, Put, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
-import { ApiBody, ApiConsumes, ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Param, Delete, Put, Query, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { ApiBody, ApiConsumes, ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
@@ -67,9 +67,10 @@ export class ShopController {
   }
 
   @Get('/all')
-  @ApiOperation({ summary: 'Barcha do’konlar ro’yxati' })
-  findAll() {
-    return this.shopService.findAll();
+  @ApiOperation({ summary: 'Barcha do\'konlar ro\'yxati' })
+  @ApiQuery({ name: 'regions', required: false, type: String })
+  findAll(@Query('regions') regions?: string) {
+    return this.shopService.findAll(regions);
   }
 
   @Get(':id')
