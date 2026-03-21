@@ -1,5 +1,21 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Put, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Put,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+} from '@nestjs/swagger';
 import { AdminService } from './admin.service';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateAdminDto } from './dto/update-admin.dto';
@@ -32,6 +48,13 @@ export class AdminController {
   @ApiParam({ name: 'id', type: Number })
   findOne(@Param('id') id: string) {
     return this.adminService.findOne(+id);
+  }
+
+  @Patch('/me')
+  @UseGuards(RolesGuardFactory([Role.ADMIN]))
+  @ApiOperation({ summary: "O'z chat_id'ini yangilash (ADMIN)" })
+  updateMe(@Req() req: any, @Body('chat_id') chat_id: string) {
+    return this.adminService.updateMe(req['user'].id, chat_id);
   }
 
   @Put(':id')

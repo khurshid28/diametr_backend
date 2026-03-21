@@ -35,6 +35,7 @@ export class AuthService {
     if (!user) {
       user = await this.prisma.admin.findUnique({
         where,
+        include: { shop: true },
       });
     }
     if (!user) {

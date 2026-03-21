@@ -74,6 +74,15 @@ export class AdminService {
     });
   }
 
+  async updateMe(id: number, chat_id: string) {
+    this.logger.log('updateMe');
+    return await this.prisma.admin.update({
+      where: { id },
+      data: { chat_id },
+      include: { shop: true },
+    });
+  }
+
   async remove(id: number) {
     this.logger.log('remove');
     let admin = await this.prisma.admin.findUnique({
