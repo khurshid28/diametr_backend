@@ -26,18 +26,18 @@ import { PromoCodeModule } from './promo-code/promo-code.module';
 import { TelegramModule } from './telegram/telegram.module';
 import { StoreTelegramModule } from './store-telegram/store-telegram.module';
 import { UnitTypeModule } from './unit-type/unit-type.module';
+import { SubscriptionModule } from './subscription/subscription.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-      envFilePath :".env"
+      envFilePath: '.env',
     }),
     JwtModule.register({
       global: true,
       secret: process.env.JWT_SECRET ?? 'default_secret',
       signOptions: { expiresIn: process.env.JWT_EXPIRES ?? '30d' },
     }),
-   
 
     AuthModule,
     PrismaClientModule,
@@ -61,12 +61,11 @@ import { UnitTypeModule } from './unit-type/unit-type.module';
     TelegramModule,
     StoreTelegramModule,
     UnitTypeModule,
+    SubscriptionModule,
   ],
   controllers: [AppController],
-  providers: [AppService,  ],
+  providers: [AppService],
 })
-
-
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
     consumer.apply(AppLoggerMiddleware).forRoutes('*');

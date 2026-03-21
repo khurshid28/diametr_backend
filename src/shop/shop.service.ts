@@ -17,9 +17,31 @@ export class ShopService {
     if (!region) {
       throw new NotFoundException('Region not found');
     }
-    return await this.prisma.shop.create({
-      data: data,
+
+    // Apply free trial from settings
+    const settings = await this.prisma.settings.findUnique({
+      where: { id: 1 },
     });
+    const trialMonths = settings?.free_trial_months ?? 1;
+    const expired = new Date();
+    expired.setMonth(expired.getMonth() + trialMonths);
+
+    const shop = await this.prisma.shop.create({
+      data: { ...data, expired },
+    });
+
+    // Log the free trial
+    await this.prisma.shopBalanceLog.create({
+      data: {
+        shop_id: shop.id,
+        amount: 0,
+        type: 'FREE_TRIAL',
+        note: `Bepul sinov: ${trialMonths} oy → ${expired.toISOString().slice(0, 10)}`,
+        balance_after: 0,
+      },
+    });
+
+    return shop;
   }
 
   async findAll(regions?: string) {
@@ -52,9 +74,21 @@ export class ShopService {
                 unit_type: true,
                 product: {
                   select: {
-                    id: true, name: true, name_uz: true, name_ru: true,
-                    image: true, desc: true, category_id: true,
-                    category: { select: { id: true, name: true, name_uz: true, name_ru: true } },
+                    id: true,
+                    name: true,
+                    name_uz: true,
+                    name_ru: true,
+                    image: true,
+                    desc: true,
+                    category_id: true,
+                    category: {
+                      select: {
+                        id: true,
+                        name: true,
+                        name_uz: true,
+                        name_ru: true,
+                      },
+                    },
                   },
                 },
               },

@@ -121,7 +121,8 @@ export class TelegramService implements OnModuleInit {
       if (!message) return;
       const chatId = message.chat?.id;
       const text: string = message.text ?? '';
-      // Allow /start from ANY user so shop admins can get their chat_id
+
+      // ── Messages from non-super-admins (shop admins / unknown users) ──
       if (!this.chatIds.includes(chatId)) {
         if (text.trim().toLowerCase() === '/start') {
           await this.reply(
@@ -131,15 +132,43 @@ export class TelegramService implements OnModuleInit {
               `<code>${chatId}</code>\n\n` +
               `Bu raqamni <b>shop.diametr.uz</b> → Profil → Telegram bo'limiga kiriting.`,
           );
+          return;
+        }
+        // Check if this is a known shop admin by chat_id
+        const admin = await this.prisma.admin.findFirst({
+          where: { chat_id: String(chatId) },
+          include: { shop: { select: { id: true, name: true } } },
+        });
+        if (admin && text.trim()) {
+          // Forward message to super admins
+          const shopName = admin.shop?.name ?? "Do'kon noma'lum";
+          const adminName = admin.fullname ?? admin.phone ?? 'Admin';
+          await this.reply(
+            chatId,
+            `✅ Xabaringiz qabul qilindi.\nTez orada javob beramiz.`,
+          );
+          await this.send(
+            `📩 <b>Do'kon admin xabari</b>\n` +
+              `━━━━━━━━━━━━━━━━━\n` +
+              `🏪 Do'kon: <b>${shopName}</b>\n` +
+              `👤 Admin: <b>${adminName}</b> | <code>${admin.phone}</code>\n` +
+              `💬 Xabar:\n${text}`,
+          );
         }
         return;
       }
+
       if (!text.startsWith('/')) return;
       const [rawCmd, arg] = text.split(' ');
       await this.handleCommand(rawCmd.split('@')[0].toLowerCase(), chatId, arg);
     } catch (e: any) {
       this.logger.error(`handleUpdate error: ${e?.message}`);
     }
+  }
+
+  /** Send a message to a specific chat (used by subscription service etc.) */
+  async sendToChat(chatId: string | number, text: string) {
+    await this.reply(Number(chatId), text);
   }
 
   // ─── Command router ────────────────────────────────────────────────

@@ -13,6 +13,7 @@ model Shop {
     market_delivery Boolean @default(true)
     fixed_delivery Boolean @default(true)
     expired DateTime?
+    balance Int @default(0)
 
     region_id Int?
     region    Region? @relation(fields: [region_id], references: [id])
@@ -28,6 +29,8 @@ model Shop {
     payments Payment[]
 
     promo_codes PromoCode[]
+
+    balance_logs ShopBalanceLog[]
 
     createdt  DateTime @default(now())
     updatedAt DateTime @updatedAt
