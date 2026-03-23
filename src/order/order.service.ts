@@ -22,7 +22,7 @@ export class OrderService {
   private logger = new Logger('Order service');
   async create(data: CreateOrderDto, userId?: number) {
     this.logger.log('create');
-    let shop = await this.prisma.shop.findUnique({
+    const shop = await this.prisma.shop.findUnique({
       where: { id: data.shop_id },
     });
     if (!shop) {
@@ -52,8 +52,8 @@ export class OrderService {
     const finalAmount =
       discountAmount != null ? data.amount - discountAmount : data.amount;
 
-    let order = await this.prisma.$transaction(async (tx) => {
-      let order = await tx.order.create({
+    const order = await this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.create({
         data: {
           shop_id: data.shop_id,
           amount: finalAmount,
@@ -84,7 +84,7 @@ export class OrderService {
             return { ...item, order_id: order.id };
           })
           .map(async (e) => {
-            let shopProduct = await tx.shopProduct.findUnique({
+            const shopProduct = await tx.shopProduct.findUnique({
               where: {
                 id: e.shop_product_id,
               },
@@ -191,7 +191,7 @@ export class OrderService {
 
   async findOne(id: number) {
     this.logger.log('findOne');
-    let order = await this.prisma.order.findUnique({
+    const order = await this.prisma.order.findUnique({
       where: { id },
       include: {
         shop: true,
@@ -219,7 +219,7 @@ export class OrderService {
 
   async remove(id: number) {
     this.logger.log('remove');
-    let order = await this.prisma.order.findUnique({
+    const order = await this.prisma.order.findUnique({
       where: { id },
     });
     if (!order) {
@@ -234,7 +234,7 @@ export class OrderService {
   async finish(id: number) {
     this.logger.log('finish');
 
-    let order = await this.prisma.order.findUnique({
+    const order = await this.prisma.order.findUnique({
       where: { id },
       include: {
         products: true,
@@ -255,7 +255,7 @@ export class OrderService {
     return await this.prisma.$transaction(async (tx) => {
       await Promise.all(
         order.products.map(async (e) => {
-          let shopProduct = await tx.shopProduct.findUnique({
+          const shopProduct = await tx.shopProduct.findUnique({
             where: {
               id: e.shop_product_id,
             },
@@ -305,7 +305,7 @@ export class OrderService {
   async confirm(id: number) {
     this.logger.log('finish');
 
-    let order = await this.prisma.order.findUnique({
+    const order = await this.prisma.order.findUnique({
       where: { id },
     });
     if (!order) {
@@ -334,7 +334,7 @@ export class OrderService {
   async cancel(id: number) {
     this.logger.log('confirm');
 
-    let order = await this.prisma.order.findUnique({
+    const order = await this.prisma.order.findUnique({
       where: { id },
     });
     if (!order) {
@@ -344,14 +344,31 @@ export class OrderService {
     if (order.status == 'CANCELED') {
       throw new BadRequestException('order is already canceled');
     }
-    const updated = await this.prisma.order.update({
-      where: {
-        id: order.id,
-      },
-      data: {
-        status: ORDER_STATUS.CANCELED,
-      },
+
+    // If order was FINISHED, restore stock
+    const wasFinished = order.status === 'FINISHED';
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      if (wasFinished) {
+        const orderProducts = await tx.orderProduct.findMany({
+          where: { order_id: id },
+        });
+        await Promise.all(
+          orderProducts.map(async (op) => {
+            await tx.shopProduct.update({
+              where: { id: op.shop_product_id },
+              data: { count: { increment: op.count } },
+            });
+          }),
+        );
+      }
+
+      return tx.order.update({
+        where: { id: order.id },
+        data: { status: ORDER_STATUS.CANCELED },
+      });
     });
+
     this.telegram.notifyOrderCanceled(order.id).catch(() => {});
     this.storeTelegram.notifyUserOrderCanceled(order).catch(() => {});
     return updated;

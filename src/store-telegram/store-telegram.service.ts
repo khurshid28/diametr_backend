@@ -23,6 +23,68 @@ type CheckoutCtx = {
   lon?: number;
 };
 
+// ─── Color name mapping ───────────────────────────────────────────────────────
+
+const COLOR_NAMES: Record<string, string> = {
+  '#EF4444': 'Qizil',
+  '#DC2626': "To'q qizil",
+  '#F87171': 'Och qizil',
+  '#B91C1C': 'Bordo',
+  '#FCA5A5': 'Pushti-qizil',
+  '#EC4899': 'Pushti',
+  '#F472B6': 'Och pushti',
+  '#BE185D': "To'q pushti",
+  '#F97316': "Zarg'aldoq",
+  '#FB923C': "Och zarg'aldoq",
+  '#EA580C': "To'q zarg'aldoq",
+  '#EAB308': 'Sariq',
+  '#FACC15': 'Limon',
+  '#CA8A04': "To'q sariq",
+  '#FDE047': 'Och sariq',
+  '#F59E0B': 'Oltin rang',
+  '#22C55E': 'Yashil',
+  '#16A34A': "To'q yashil",
+  '#4ADE80': 'Och yashil',
+  '#15803D': "O'rmon rang",
+  '#84CC16': 'Sabzi rang',
+  '#A3E635': 'Limetka',
+  '#06B6D4': 'Moviy',
+  '#22D3EE': 'Och moviy',
+  '#0891B2': "To'q moviy",
+  '#3B82F6': "Ko'k",
+  '#60A5FA': "Och ko'k",
+  '#2563EB': "To'q ko'k",
+  '#1D4ED8': "Quyuq ko'k",
+  '#93C5FD': 'Osmon rang',
+  '#1E40AF': 'Nil rang',
+  '#6366F1': 'Indigo',
+  '#818CF8': 'Och indigo',
+  '#8B5CF6': 'Binafsha',
+  '#A78BFA': 'Och binafsha',
+  '#7C3AED': "To'q binafsha",
+  '#C084FC': 'Lavanda',
+  '#92400E': 'Jigarrang',
+  '#B45309': "Qarag'ay",
+  '#78350F': "To'q jigarrang",
+  '#D97706': 'Bronza',
+  '#6B7280': 'Kulrang',
+  '#9CA3AF': 'Och kulrang',
+  '#374151': "To'q kulrang",
+  '#D1D5DB': 'Kumush',
+  '#FFFFFF': 'Oq',
+  '#F8FAFC': 'Oqish',
+  '#0F172A': 'Qora',
+  '#1E293B': 'Qoramtir',
+  '#334155': 'Grafitli',
+  '#64748B': "Ko'kish kulrang",
+};
+
+function colorLabel(hex: string | null | undefined): string {
+  if (!hex) return '';
+  const upper = hex.toUpperCase();
+  return COLOR_NAMES[upper] || hex;
+}
+
 // ─── Bot commands ─────────────────────────────────────────────────────────────
 
 const STORE_BOT_COMMANDS = [
@@ -835,7 +897,7 @@ export class StoreTelegramService implements OnModuleInit {
       if (pi.value != null && pi.unit_type?.symbol)
         parts.push(`${pi.value} ${pi.unit_type.symbol}`);
       else if (pi.unit_type?.symbol) parts.push(pi.unit_type.symbol);
-      if (pi.color) parts.push(`🎨 ${pi.color}`);
+      if (pi.color) parts.push(`🎨 ${colorLabel(pi.color)}`);
       if (pi.size) parts.push(`📐 ${pi.size}`);
       const variantDetail =
         parts.length > 0 ? `\n    📌 ${parts.join('  ·  ')}` : '';
@@ -1178,6 +1240,10 @@ export class StoreTelegramService implements OnModuleInit {
         shop: {
           select: { id: true, name: true, address: true, lat: true, lon: true },
         },
+        order_products: {
+          where: { order: { status: 'FINISHED' } },
+          select: { count: true },
+        },
       },
       orderBy: { price: 'asc' },
     });
@@ -1224,7 +1290,7 @@ export class StoreTelegramService implements OnModuleInit {
       (pi as any).value != null && (pi as any).unit_type?.symbol
         ? `${(pi as any).value} ${(pi as any).unit_type.symbol}`
         : '',
-      (pi as any).color ?? '',
+      colorLabel((pi as any).color) ?? '',
       (pi as any).size ?? '',
     ]
       .filter(Boolean)
@@ -1239,6 +1305,11 @@ export class StoreTelegramService implements OnModuleInit {
     const shopLines = slice.map((sp, i) => {
       const shop = sp.shop;
       const price = (sp.price ?? 0).toLocaleString('ru-RU');
+      const soldCount =
+        (sp as any).order_products?.reduce(
+          (s: number, op: any) => s + op.count,
+          0,
+        ) ?? 0;
       let distLine = '';
       if (userLoc && shop.lat && shop.lon) {
         const d = this.haversine(userLoc.lat, userLoc.lon, shop.lat, shop.lon);
@@ -1249,10 +1320,14 @@ export class StoreTelegramService implements OnModuleInit {
       }
       const inCart = cart.find((c) => c.shop_product_id === sp.id);
       const cartTag = inCart ? `  ✅ ${inCart.count} ta` : '';
+      const soldLine =
+        soldCount > 0
+          ? `   ·   ✅ ${soldCount} ${lang === 'ru' ? 'продано' : 'sotilgan'}`
+          : '';
       return (
         `${nums[i] ?? `${safePage * PER_PAGE + i + 1}.`}  <b>${shop.name ?? '—'}</b>${cartTag}\n` +
         `    📍 ${shop.address ?? '—'}${distLine}\n` +
-        `    💰 ${price} so'm   ·   📦 ${sp.count} ta`
+        `    💰 ${price} so'm   ·   📦 ${sp.count} ta${soldLine}`
       );
     });
 
@@ -1348,6 +1423,10 @@ export class StoreTelegramService implements OnModuleInit {
             },
           },
         },
+        order_products: {
+          where: { order: { status: 'FINISHED' } },
+          select: { count: true },
+        },
       },
       take: 100,
     });
@@ -1390,11 +1469,20 @@ export class StoreTelegramService implements OnModuleInit {
           : pname;
       const cat = sp.product_item?.product?.category?.name ?? '';
       const price = (sp.price ?? 0).toLocaleString('ru-RU');
+      const soldCount =
+        (sp as any).order_products?.reduce(
+          (s: number, op: any) => s + op.count,
+          0,
+        ) ?? 0;
       const inCart = cart.find((c) => c.shop_product_id === sp.id);
       const cartTag = inCart ? `  ✅ ${inCart.count} ta` : '';
+      const soldLine =
+        soldCount > 0
+          ? `   ·   ✅ ${soldCount} ${lang === 'ru' ? 'прод.' : 'sotilgan'}`
+          : '';
       return (
         `${nums[i] ?? `${safePage * this.SEARCH_PER_PAGE + i + 1}.`}  <b>${displayName}</b>${cartTag}\n` +
-        `    ${cat ? `🗂 ${cat}   ·   ` : ''}💰 ${price} so'm   ·   📦 ${sp.count} ta`
+        `    ${cat ? `🗂 ${cat}   ·   ` : ''}💰 ${price} so'm   ·   📦 ${sp.count} ta${soldLine}`
       );
     });
 

@@ -25,6 +25,54 @@ export class CategoryService {
     const categories = await this.prisma.category.findMany();
     return categories;
   }
+
+  async findAllWithStats() {
+    this.logger.log('findAllWithStats');
+    const categories = await this.prisma.category.findMany({
+      where: { work_status: 'WORKING' },
+      include: {
+        products: {
+          where: { work_status: 'WORKING' },
+          include: {
+            items: {
+              include: {
+                shop_products: {
+                  where: { work_status: 'WORKING' },
+                  select: { count: true, price: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return categories.map(({ products, ...cat }) => {
+      let product_count = 0;
+      let total_stock = 0;
+      let total_value = 0;
+      let shop_product_count = 0;
+
+      for (const product of products) {
+        for (const item of product.items) {
+          for (const sp of item.shop_products) {
+            product_count++;
+            shop_product_count++;
+            total_stock += sp.count ?? 0;
+            total_value += (sp.count ?? 0) * (sp.price ?? 0);
+          }
+        }
+      }
+
+      return {
+        ...cat,
+        product_count: products.length,
+        shop_product_count,
+        total_stock,
+        total_value,
+      };
+    });
+  }
   async findOne(id: number) {
     this.logger.log('findOne');
     let category = await this.prisma.category.findUnique({

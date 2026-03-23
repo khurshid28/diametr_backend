@@ -7,10 +7,11 @@ import { UpdateShopDto } from './dto/update-shop.dto';
 export class ShopService {
   constructor(private readonly prisma: PrismaClientService) {}
   private logger = new Logger('Shop service');
+
   async create(data: CreateShopDto) {
     this.logger.log('create');
 
-    let region = await this.prisma.region.findUnique({
+    const region = await this.prisma.region.findUnique({
       where: { id: data.region_id },
     });
 
@@ -56,10 +57,29 @@ export class ShopService {
           ? { region_id: { in: regionIds } }
           : {}),
       },
-      include: { region: { select: { id: true, name: true } } },
+      include: {
+        region: { select: { id: true, name: true } },
+        products: {
+          where: { work_status: 'WORKING' },
+          select: { count: true, price: true },
+        },
+      },
     });
-    return shops;
+
+    return shops.map(({ products, ...shop }) => ({
+      ...shop,
+      product_count: products.length,
+      total_stock: products.reduce((s, p) => s + (p.count ?? 0), 0),
+      total_value: products.reduce(
+        
+       ,
+      
+        (s, p) => s + (p.count ?? 0) * (p.price ?? 0),
+        0,
+      ),
+    }));
   }
+
   async findOne(id: number) {
     this.logger.log('findOne');
     const shop = await this.prisma.shop.findUnique({
@@ -93,6 +113,10 @@ export class ShopService {
                 },
               },
             },
+            order_products: {
+              where: { order: { status: 'FINISHED' } },
+              select: { count: true, order: { select: { createdt: true } } },
+            },
           },
         },
       },
@@ -100,28 +124,42 @@ export class ShopService {
     if (!shop) throw new NotFoundException('shop not found');
 
     const products = shop.products
-      .map((sp) => ({
-        id: sp.product_item?.product?.id ?? sp.id,
-        shop_product_id: sp.id,
-        name: sp.product_item?.product?.name,
-        name_uz: sp.product_item?.product?.name_uz,
-        name_ru: sp.product_item?.product?.name_ru,
-        image: sp.product_item?.product?.image,
-        desc: sp.product_item?.product?.desc,
-        price: sp.price,
-        bonus_price: sp.bonus_price ?? null,
-        count: sp.count,
-        category_id: sp.product_item?.product?.category_id,
-        category: sp.product_item?.product?.category,
-        // Variant details
-        product_item_id: sp.product_item_id,
-        variant_name: sp.product_item?.name,
-        variant_image: sp.product_item?.image,
-        color: sp.product_item?.color ?? null,
-        size: sp.product_item?.size ?? null,
-        value: sp.product_item?.value ? Number(sp.product_item.value) : null,
-        unit_type: sp.product_item?.unit_type ?? null,
-      }))
+      .map((sp) => {
+        const sold_count = sp.order_products.reduce((s, op) => s + op.count, 0);
+        const last_sold_date =
+          sp.order_products.length > 0
+            ? sp.order_products.reduce((latest, op) => {
+                const d = op.order?.createdt;
+                return d && d > latest ? d : latest;
+              }, new Date(0))
+            : null;
+        return {
+          id: sp.product_item?.product?.id ?? sp.id,
+          shop_product_id: sp.id,
+          name: sp.product_item?.product?.name,
+          name_uz: sp.product_item?.product?.name_uz,
+          name_ru: sp.product_item?.product?.name_ru,
+          image: sp.product_item?.product?.image,
+          desc: sp.product_item?.product?.desc,
+          price: sp.price,
+          bonus_price: sp.bonus_price ?? null,
+          count: sp.count,
+          sold_count,
+          last_sold:
+            last_sold_date && last_sold_date.getTime() > 0
+              ? last_sold_date
+              : null,
+          category_id: sp.product_item?.product?.category_id,
+          category: sp.product_item?.product?.category,
+          product_item_id: sp.product_item_id,
+          variant_name: sp.product_item?.name,
+          variant_image: sp.product_item?.image,
+          color: sp.product_item?.color ?? null,
+          size: sp.product_item?.size ?? null,
+          value: sp.product_item?.value ? Number(sp.product_item.value) : null,
+          unit_type: sp.product_item?.unit_type ?? null,
+        };
+      })
       .filter((p) => p.name != null);
 
     return { ...shop, products };
@@ -129,7 +167,7 @@ export class ShopService {
 
   async update(id: number, data: UpdateShopDto) {
     this.logger.log('update');
-    let shop = await this.prisma.shop.findUnique({
+    const shop = await this.prisma.shop.findUnique({
       where: { id },
     });
     if (!shop) {
@@ -137,10 +175,9 @@ export class ShopService {
     }
 
     if (data.region_id) {
-      let region = await this.prisma.region.findUnique({
+      const region = await this.prisma.region.findUnique({
         where: { id: data.region_id },
       });
-
       if (!region) {
         throw new NotFoundException('Region not found');
       }
@@ -154,7 +191,7 @@ export class ShopService {
 
   async remove(id: number) {
     this.logger.log('remove');
-    let shop = await this.prisma.shop.findUnique({
+    const shop = await this.prisma.shop.findUnique({
       where: { id },
     });
     if (!shop) {

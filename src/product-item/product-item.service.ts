@@ -33,7 +33,15 @@ export class ProductItemService {
   async findAll() {
     this.logger.log('findAll');
     const productItems = await this.prisma.productItem.findMany({
-      include: { unit_type: true, product: { include: { category: true } } },
+      include: {
+        unit_type: true,
+        product: { include: { category: true } },
+        _count: {
+          select: {
+            shop_products: { where: { work_status: 'WORKING' } },
+          },
+        },
+      },
     });
     return productItems;
   }

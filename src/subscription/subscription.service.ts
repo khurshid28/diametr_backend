@@ -1,4 +1,4 @@
-import {
+﻿import {
   Injectable,
   Logger,
   NotFoundException,
@@ -24,7 +24,7 @@ export class SubscriptionService implements OnModuleInit {
     setTimeout(() => this.runHourlyCheck(), 30_000);
   }
 
-  // ── Settings ────────────────────────────────────────────────────────────────
+  // тФАтФА Settings тФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФА
   async ensureSettings() {
     const s = await this.prisma.settings.findUnique({ where: { id: 1 } });
     if (!s) {
@@ -40,9 +40,6 @@ export class SubscriptionService implements OnModuleInit {
   }
 
   async updateSettings(data: {
-   
-   ;
- 
     free_trial_months?: number;
     subscription_price?: number;
   }) {
@@ -50,7 +47,7 @@ export class SubscriptionService implements OnModuleInit {
     return this.prisma.settings.update({ where: { id: 1 }, data });
   }
 
-  // ── Balance ──────────────────────────────────────────────────────────────────
+  // тФАтФА Balance тФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФА
   async getShopBalance(shopId: number) {
     const shop = await this.prisma.shop.findUnique({
       where: { id: shopId },
@@ -81,20 +78,10 @@ export class SubscriptionService implements OnModuleInit {
       orderBy: { balance: 'asc' },
     });
   }
-    
-   
-   
-   ,
-  
 
-     ,
-   
-  // ── Top-up ──────────────────────────────────────────────────────────────────
+  // тФАтФА Top-up тФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФА
   async topUp(
     shopId: number,
-     
-     ,
-   
     amount: number,
     type: BALANCE_TYPE,
     note?: string,
@@ -115,12 +102,7 @@ export class SubscriptionService implements OnModuleInit {
 
     const settings = await this.ensureSettings();
     const price = settings.subscription_price;
-    if (newBalance >= 
-      price) 
-{     
-     
-     ,
-    
+    if (newBalance >= price) {
       const now = new Date();
       const expired = shop.expired;
       if (!expired || expired <= now) {
@@ -128,10 +110,7 @@ export class SubscriptionService implements OnModuleInit {
         return { balance: newBalance - price, extended: true };
       }
     }
-     ,
-   
 
-     
     return { balance: newBalance, extended: false };
   }
 
@@ -144,7 +123,7 @@ export class SubscriptionService implements OnModuleInit {
     );
   }
 
-  // ── Free trial ──────────────────────────────────────────────────────────────
+  // тФАтФА Free trial тФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФА
   async giveFffreeTrial(shopId: number, months?: number) {
     const settings = await this.ensureSettings();
     const m = months ?? settings.free_trial_months;
@@ -180,7 +159,7 @@ export class SubscriptionService implements OnModuleInit {
     return { expired: newExpired };
   }
 
-  // ── Click webhook ────────────────────────────────────────────────────────────
+  // тФАтФА Click webhook тФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФА
   async handleClickWebhook(body: any) {
     const serviceId = process.env.CLICK_SERVICE_ID;
     const secretKey = process.env.CLICK_SECRET_KEY;
@@ -201,11 +180,6 @@ export class SubscriptionService implements OnModuleInit {
         .update(
           `${body.click_trans_id}${serviceId}${secretKey}${body.merchant_trans_id}${body.amount}${action}${body.sign_time}`,
         )
-        
-       
-       
-       ,
-      
         .digest('hex');
       if (sign !== body.sign_string) {
         return { error: -1, error_note: 'SIGN CHECK FAILED' };
@@ -240,12 +214,9 @@ export class SubscriptionService implements OnModuleInit {
         error_note: 'Success',
       };
     }
-       
-
     return { error: -3, error_note: 'Action not found' };
   }
 
-  // ── Payme webhook ────────────────────────────────────────────────────────────
   async handlePaymeWebhook(body: any) {
     const method = body?.method;
     const params = body?.params ?? {};
@@ -253,25 +224,12 @@ export class SubscriptionService implements OnModuleInit {
     const amountTiyin = Number(params?.amount ?? 0);
     const amountSom = Math.floor(amountTiyin / 100);
 
-    const settings = aw
-        ait thi
-       s.ensureSet
-       tings();
-       ,
-      
-    const price = sett
-       ings.subscription_price;
-       
-       ,
-     
+    const settings = await this.ensureSettings();
+    const price = settings.subscription_price;
 
     const respond = (result: any) => ({ id: body?.id ?? 1, result });
     const errResp = (code: number, msg: string) => ({
-      id: body?.id ?? 
-       1,
-       
-       ,
-     
+      id: body?.id ?? 1,
       error: { code, message: { uz: msg, ru: msg, en: msg } },
     });
 
@@ -310,8 +268,6 @@ export class SubscriptionService implements OnModuleInit {
       return respond({
         transaction: params?.id,
         cancel_time: Date.now(),
-          ,
-        
         state: -1,
       });
     }
@@ -330,14 +286,10 @@ export class SubscriptionService implements OnModuleInit {
     return errResp(-32601, 'Method not found');
   }
 
-  // ── Scheduler ────────────────────────────────────────────────────────────────
+  // тФАтФА Scheduler тФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФА
   async runHourlyCheck() {
     try {
-      const now = n
-          ew Date();
-         
-         
-        
+      const now = new Date();
       const todayStr = now.toISOString().slice(0, 10);
 
       if (this.lastWarnDate !== todayStr) {
@@ -352,22 +304,13 @@ export class SubscriptionService implements OnModuleInit {
         where: { work_status: 'WORKING' },
       });
 
-    
-   
-   
-   ,
-  
       for (const shop of shops) {
         if (!shop.expired) continue;
         const expired = new Date(shop.expired);
         const daysLeft = Math.ceil(
           (expired.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
         );
-        const
-        balance = shop.balan
-       ce ?? 0;
-       ,
-     
+        const balance = shop.balance ?? 0;
 
         if (daysLeft <= 0) {
           if (balance >= price) {
@@ -385,7 +328,7 @@ export class SubscriptionService implements OnModuleInit {
             });
             await this.notifyShopAdmin(
               shop.id,
-              `Obunangiz tugadi! Hisobda mablag yetarli emas (${balance.toLocaleString()} so'm). Hisobni toldiring: shop.diametr.uz → Profil`,
+              `Obunangiz tugadi! Hisobda mablag yetarli emas (${balance.toLocaleString()} so'm). Hisobni toldiring: shop.diametr.uz тЖТ Profil`,
             );
           }
         } else if (
@@ -396,10 +339,8 @@ export class SubscriptionService implements OnModuleInit {
           this.warnedToday.add(shop.id);
           await this.notifyShopAdmin(
             shop.id,
-            `Diqqat! Obuna ${daysLeft} kunda tugaydi. Hisob balansi: ${balance.toLocaleString()} so'm. Obuna narxi: ${price.toLocaleString()} so'm/oy. Hisobni toldiring: shop.diametr.uz → Profil`,
+            `Diqqat! Obuna ${daysLeft} kunda tugaydi. Hisob balansi: ${balance.toLocaleString()} so'm. Obuna narxi: ${price.toLocaleString()} so'm/oy. Hisobni toldiring: shop.diametr.uz тЖТ Profil`,
           );
-             ,
-            
         }
       }
     } catch (e: any) {
@@ -407,7 +348,7 @@ export class SubscriptionService implements OnModuleInit {
     }
   }
 
-  // ── Internal helpers ─────────────────────────────────────────────────────────
+  // тФАтФА Internal helpers тФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФА
   private async deductAndExtend(
     shopId: number,
     currentBalance: number,

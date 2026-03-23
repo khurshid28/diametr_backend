@@ -10,7 +10,14 @@ import {
   UploadedFile,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBody, ApiConsumes, ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBody,
+  ApiConsumes,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+} from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
@@ -68,12 +75,20 @@ export class CategoryController {
   @Post('/upload-image-url')
   @UseGuards(RolesGuardFactory([Role.ADMIN, Role.SUPER]))
   @ApiBearerAuth('JWT')
-  @ApiOperation({ summary: "URL dan rasm yuklab PNG saqlab qo'yish (ADMIN/SUPER)" })
-  @ApiBody({ schema: { type: 'object', properties: { url: { type: 'string' } } } })
+  @ApiOperation({
+    summary: "URL dan rasm yuklab PNG saqlab qo'yish (ADMIN/SUPER)",
+  })
+  @ApiBody({
+    schema: { type: 'object', properties: { url: { type: 'string' } } },
+  })
   async uploadImageFromUrl(@Body() body: { url: string }) {
     const response = await axios.get(body.url, { responseType: 'arraybuffer' });
-    const filename = Date.now() + '-' + Math.round(Math.random() * 1e9) + '.jpg';
-    writeFileSync(join(process.cwd(), 'public', 'categories', filename), Buffer.from(response.data));
+    const filename =
+      Date.now() + '-' + Math.round(Math.random() * 1e9) + '.jpg';
+    writeFileSync(
+      join(process.cwd(), 'public', 'categories', filename),
+      Buffer.from(response.data),
+    );
     return { image: filename };
   }
 
@@ -82,7 +97,13 @@ export class CategoryController {
   findAll() {
     return this.categoryService.findAll();
   }
-
+  @Get('/stats')
+  @UseGuards(RolesGuardFactory([Role.ADMIN, Role.SUPER]))
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: 'Kategoriyalar statistikasi (ADMIN/SUPER)' })
+  findAllWithStats() {
+    return this.categoryService.findAllWithStats();
+  }
   @Get(':id')
   @ApiOperation({ summary: 'Bitta kategoriya' })
   @ApiParam({ name: 'id', type: Number })

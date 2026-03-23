@@ -6,16 +6,83 @@ import {
   Param,
   Delete,
   Put,
+  UseGuards,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBody,
+  ApiConsumes,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+} from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname, join } from 'path';
+import { writeFileSync } from 'fs';
+import axios from 'axios';
 import { ProductItemService } from './product-item.service';
 import { CreateProductItemDto } from './dto/create-product-item.dto';
 import { UpdateProductItemDto } from './dto/update-product-item.dto';
+import { Role } from '@prisma/client';
+import { RolesGuardFactory } from 'src/_guard/roles.guard';
 
 @ApiTags('Product-Item')
 @Controller('product-item')
 export class ProductItemController {
   constructor(private readonly productItemService: ProductItemService) {}
+
+  @Post('/upload-image')
+  @UseGuards(RolesGuardFactory([Role.ADMIN, Role.SUPER]))
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: 'Variant rasmi yuklash (ADMIN/SUPER)' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { image: { type: 'string', format: 'binary' } },
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: diskStorage({
+        destination: join(process.cwd(), 'public', 'product-items'),
+        filename: (_req, file, cb) => {
+          const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          cb(null, unique + extname(file.originalname));
+        },
+      }),
+      fileFilter: (_req, file, cb) => {
+        const allowed = /\.(jpg|jpeg|png|webp|gif|svg|bmp)$/i;
+        cb(null, allowed.test(file.originalname));
+      },
+    }),
+  )
+  uploadImage(@UploadedFile() file: Express.Multer.File) {
+    return { image: file.filename };
+  }
+
+  @Post('/upload-image-url')
+  @UseGuards(RolesGuardFactory([Role.ADMIN, Role.SUPER]))
+  @ApiBearerAuth('JWT')
+  @ApiOperation({
+    summary: 'URL dan variant rasmi yuklab saqlash (ADMIN/SUPER)',
+  })
+  @ApiBody({
+    schema: { type: 'object', properties: { url: { type: 'string' } } },
+  })
+  async uploadImageFromUrl(@Body() body: { url: string }) {
+    const response = await axios.get(body.url, { responseType: 'arraybuffer' });
+    const filename =
+      Date.now() + '-' + Math.round(Math.random() * 1e9) + '.jpg';
+    writeFileSync(
+      join(process.cwd(), 'public', 'product-items', filename),
+      Buffer.from(response.data),
+    );
+    return { image: filename };
+  }
 
   @Post()
   @ApiOperation({ summary: 'Mahsulot varianti yaratish' })
