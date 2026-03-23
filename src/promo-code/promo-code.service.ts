@@ -5,7 +5,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaClientService } from 'src/_prisma_client/prisma_client.service';
-import { CreatePromoCodeDto, UpdatePromoCodeDto } from './dto/create-promo-code.dto';
+import {
+  CreatePromoCodeDto,
+  UpdatePromoCodeDto,
+} from './dto/create-promo-code.dto';
 
 @Injectable()
 export class PromoCodeService {
@@ -35,11 +38,19 @@ export class PromoCodeService {
       where: { id },
       data: {
         ...(data.code !== undefined && { code: data.code }),
-        ...(data.discount_type !== undefined && { discount_type: data.discount_type }),
-        ...(data.discount_value !== undefined && { discount_value: data.discount_value }),
-        ...(data.min_order_amount !== undefined && { min_order_amount: data.min_order_amount }),
+        ...(data.discount_type !== undefined && {
+          discount_type: data.discount_type,
+        }),
+        ...(data.discount_value !== undefined && {
+          discount_value: data.discount_value,
+        }),
+        ...(data.min_order_amount !== undefined && {
+          min_order_amount: data.min_order_amount,
+        }),
         ...(data.max_uses !== undefined && { max_uses: data.max_uses }),
-        ...(data.expires_at !== undefined && { expires_at: data.expires_at ? new Date(data.expires_at) : null }),
+        ...(data.expires_at !== undefined && {
+          expires_at: data.expires_at ? new Date(data.expires_at) : null,
+        }),
         ...(data.is_active !== undefined && { is_active: data.is_active }),
       },
     });
@@ -56,7 +67,9 @@ export class PromoCodeService {
       ...item,
       used_count: _count.uses,
       discount_value: Number(item.discount_value),
-      min_order_amount: item.min_order_amount ? Number(item.min_order_amount) : null,
+      min_order_amount: item.min_order_amount
+        ? Number(item.min_order_amount)
+        : null,
     }));
   }
 
@@ -81,7 +94,7 @@ export class PromoCodeService {
    * Validate a promo code for a given user.
    * Returns the promo code record or throws BadRequestException.
    */
-  async validate(code: string, userId: number) {
+  async validate(code: string, userId: number, shopId?: number) {
     this.logger.log(`validate: ${code} for user ${userId}`);
 
     const promo = await this.prisma.promoCode.findUnique({
@@ -93,6 +106,10 @@ export class PromoCodeService {
 
     if (!promo) {
       throw new BadRequestException('Promokod topilmadi');
+    }
+
+    if (promo.shop_id !== null && shopId && promo.shop_id !== shopId) {
+      throw new BadRequestException("Bu promokod bu do'kon uchun emas");
     }
 
     if (!promo.is_active) {
@@ -110,7 +127,9 @@ export class PromoCodeService {
     }
 
     if (promo.max_uses !== null) {
-      const totalUses = await this.prisma.promoCodeUse.count({ where: { promo_code_id: promo.id } });
+      const totalUses = await this.prisma.promoCodeUse.count({
+        where: { promo_code_id: promo.id },
+      });
       if (totalUses >= promo.max_uses) {
         throw new BadRequestException('Promokod foydalanish limiti tugagan');
       }
@@ -121,7 +140,9 @@ export class PromoCodeService {
       code: promo.code,
       discount_type: promo.discount_type,
       discount_value: Number(promo.discount_value),
-      min_order_amount: promo.min_order_amount ? Number(promo.min_order_amount) : null,
+      min_order_amount: promo.min_order_amount
+        ? Number(promo.min_order_amount)
+        : null,
     };
   }
 }

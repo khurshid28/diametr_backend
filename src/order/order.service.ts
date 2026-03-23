@@ -38,6 +38,7 @@ export class OrderService {
       const promo = await this.promoCodeService.validate(
         data.promo_code.toUpperCase(),
         userId,
+        data.shop_id,
       );
       promoCodeId = promo.id;
       if (promo.discount_type === 'PERCENT') {

@@ -9,7 +9,6 @@ import {
 import { LoginDto } from './dto/login-dto';
 import { PrismaClientService } from 'src/_prisma_client/prisma_client.service';
 import { JwtService } from '@nestjs/jwt';
-import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -22,28 +21,24 @@ export class AuthService {
   async login(data: LoginDto) {
     this.logger.log('login');
 
-    type userType =
-      | Prisma.AdminWhereUniqueInput
-      | Prisma.SuperWhereUniqueInput
-      | Prisma.WorkerWhereUniqueInput;
-    let where = { phone: '+' + data.login, password: data.password };
+    const phone = '+' + data.login.replace(/^\+/, '');
 
-    let user: userType = await this.prisma.worker.findUnique({
-      where,
+    let user: any = await this.prisma.worker.findFirst({
+      where: { phone },
     });
 
     if (!user) {
-      user = await this.prisma.admin.findUnique({
-        where,
+      user = await this.prisma.admin.findFirst({
+        where: { phone },
         include: { shop: true },
       });
     }
     if (!user) {
-      user = await this.prisma.super.findUnique({
-        where,
+      user = await this.prisma.super.findFirst({
+        where: { phone },
       });
     }
-    if (!user) {
+    if (!user || user.password !== data.password) {
       throw new NotFoundException('Incorrect Credentials');
     }
 

@@ -10,7 +10,7 @@ export class ProductService {
   async create(data: CreateProductDto) {
     this.logger.log('create');
 
-    let category = await this.prisma.category.findUnique({
+    const category = await this.prisma.category.findUnique({
       where: { id: data.category_id },
     });
 
@@ -27,7 +27,17 @@ export class ProductService {
     return await this.prisma.product.findMany({
       where: { work_status: 'WORKING' },
       include: {
-        category: { select: { id: true, name: true, name_uz: true, name_ru: true } },
+        category: {
+          select: { id: true, name: true, name_uz: true, name_ru: true },
+        },
+        items: {
+          include: {
+            unit_type: true,
+            _count: { select: { shop_products: true } },
+          },
+          orderBy: { id: 'desc' },
+        },
+        _count: { select: { items: true } },
       },
       orderBy: { id: 'desc' },
     });
@@ -42,25 +52,40 @@ export class ProductService {
         ...(cid !== undefined && !isNaN(cid) ? { category_id: cid } : {}),
       },
       include: {
-        category: { select: { id: true, name: true, name_uz: true, name_ru: true } },
+        category: {
+          select: { id: true, name: true, name_uz: true, name_ru: true },
+        },
       },
       orderBy: { id: 'desc' },
     });
   }
+
   async findOne(id: number) {
     this.logger.log('findOne');
 
-    let product = await this.prisma.product.findUnique({
+    const product = await this.prisma.product.findUnique({
       where: { id },
       include: {
-        category: { select: { id: true, name: true, name_uz: true, name_ru: true } },
+        category: {
+          select: { id: true, name: true, name_uz: true, name_ru: true },
+        },
         items: {
           where: { work_status: 'WORKING' },
           include: {
+            unit_type: true,
             shop_products: {
               where: { work_status: 'WORKING' },
               include: {
-                shop: { select: { id: true, name: true, address: true, lat: true, lon: true, image: true } },
+                shop: {
+                  select: {
+                    id: true,
+                    name: true,
+                    address: true,
+                    lat: true,
+                    lon: true,
+                    image: true,
+                  },
+                },
               },
               orderBy: { price: 'asc' },
             },
@@ -77,7 +102,7 @@ export class ProductService {
 
   async update(id: number, data: UpdateProductDto) {
     this.logger.log('update');
-    let product = await this.prisma.product.findUnique({
+    const product = await this.prisma.product.findUnique({
       where: { id },
     });
     if (!product) {
@@ -85,7 +110,7 @@ export class ProductService {
     }
 
     if (data.category_id) {
-      let category = await this.prisma.category.findUnique({
+      const category = await this.prisma.category.findUnique({
         where: { id: data.category_id },
       });
 
@@ -102,7 +127,7 @@ export class ProductService {
 
   async remove(id: number) {
     this.logger.log('remove');
-    let product = await this.prisma.product.findUnique({
+    const product = await this.prisma.product.findUnique({
       where: { id },
     });
     if (!product) {

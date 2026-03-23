@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+﻿import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PRODUCT_TYPE } from '@prisma/client';
 import {
   IsEnum,
@@ -11,27 +11,32 @@ import {
 } from 'class-validator';
 
 export class CreateProductDto {
-  @ApiPropertyOptional({ example: 'G’isht', description: 'Mahsulot nomi' })
+  @ApiPropertyOptional({ example: 'Gisht', description: 'Mahsulot nomi' })
   @IsOptional()
   @IsString()
   name: string;
 
-  @ApiPropertyOptional({ example: 'G’isht', description: 'Nomi (uzbekcha)', minLength: 2 })
+  @ApiPropertyOptional({ example: 'Gisht', description: 'Nomi (uzbekcha)', minLength: 2 })
   @IsOptional()
   @IsString()
   @MinLength(2)
   name_uz: string;
 
-  @ApiPropertyOptional({ example: 'Кирпич', description: 'Nomi (ruscha)', minLength: 2 })
+  @ApiPropertyOptional({ example: 'Kirpich', description: 'Nomi (ruscha)', minLength: 2 })
   @IsOptional()
   @IsString()
   @MinLength(2)
   name_ru: string;
 
-  @ApiPropertyOptional({ example: 'Qurilish g’ishti', description: 'Tavsif' })
+  @ApiPropertyOptional({ example: 'Qurilish gishti', description: 'Tavsif' })
   @IsOptional()
   @IsString()
   desc: string;
+
+  @ApiPropertyOptional({ example: 'image.jpg', description: 'Rasm fayl nomi' })
+  @IsOptional()
+  @IsString()
+  image: string;
 
   @ApiProperty({ example: 1, description: 'Kategoriya ID', minimum: 1 })
   @IsNumber()
@@ -45,7 +50,9 @@ export class CreateProductDto {
     description: 'Tur: COLOR, WEIGHT, LENGTH, SIZE, COUNTRY, LITR',
   })
   @IsNotEmpty()
-  @IsEnum(PRODUCT_TYPE, { message: 'type can be COLOR,WEIGHT,LENGTH,SIZE,COUNTRY,LITR' })
+  @IsEnum(PRODUCT_TYPE, {
+    message: 'type can be COLOR,WEIGHT,LENGTH,SIZE,COUNTRY,LITR',
+  })
   @IsOptional()
   @IsString()
   type: PRODUCT_TYPE;
