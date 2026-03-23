@@ -70,13 +70,10 @@ export class ShopService {
       ...shop,
       product_count: products.length,
       total_stock: products.reduce((s, p) => s + (p.count ?? 0), 0),
-      total_value: products.reduce(
-        
-       ,
-      
-        (s, p) => s + (p.count ?? 0) * (p.price ?? 0),
-        0,
-      ),
+      // eslint-disable-next-line
+      total_value: products.reduce((s, p) => {
+        return s + (p.count ?? 0) * (p.price ?? 0);
+      }, 0),
     }));
   }
 
