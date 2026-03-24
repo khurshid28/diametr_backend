@@ -469,8 +469,12 @@ export class TelegramService implements OnModuleInit {
     const products =
       order.products
         ?.map((p: any) => {
-          const name = p.shop_product?.product_item?.product?.name ?? '—';
-          const item = p.shop_product?.product_item?.name ?? '';
+          const name =
+            p.product_name ??
+            p.shop_product?.product_item?.product?.name ??
+            '—';
+          const item =
+            p.variant_name ?? p.shop_product?.product_item?.name ?? '';
           return `  • ${name} (${item}) x${p.count} — ${(p.amount ?? 0).toLocaleString()} so'm`;
         })
         .join('\n') ?? '';

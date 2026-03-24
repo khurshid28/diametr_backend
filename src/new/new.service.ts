@@ -22,7 +22,9 @@ export class NewService {
 
   async findAll() {
     this.logger.log('findAll');
-    const news = await this.prisma.new.findMany();
+    const news = await this.prisma.new.findMany({
+      orderBy: { id: 'desc' },
+    });
     return news;
   }
   async findOne(id: number) {

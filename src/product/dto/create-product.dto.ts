@@ -9,6 +9,7 @@ import {
   Min,
   MinLength,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateProductDto {
   @ApiPropertyOptional({ example: 'Gisht', description: 'Mahsulot nomi' })
@@ -16,16 +17,22 @@ export class CreateProductDto {
   @IsString()
   name: string;
 
-  @ApiPropertyOptional({ example: 'Gisht', description: 'Nomi (uzbekcha)', minLength: 2 })
+  @ApiPropertyOptional({
+    example: 'Gisht',
+    description: 'Nomi (uzbekcha)',
+    minLength: 2,
+  })
   @IsOptional()
   @IsString()
   @MinLength(2)
   name_uz: string;
 
-  @ApiPropertyOptional({ example: 'Kirpich', description: 'Nomi (ruscha)', minLength: 2 })
+  @ApiPropertyOptional({
+    example: 'Kirpich',
+    description: 'Nomi (ruscha)',
+  })
   @IsOptional()
   @IsString()
-  @MinLength(2)
   name_ru: string;
 
   @ApiPropertyOptional({ example: 'Qurilish gishti', description: 'Tavsif' })
@@ -56,4 +63,14 @@ export class CreateProductDto {
   @IsOptional()
   @IsString()
   type: PRODUCT_TYPE;
+
+  @ApiPropertyOptional({
+    example: 1,
+    description: "O'lchov birligi ID (UnitType)",
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  unit_type_id?: number;
 }

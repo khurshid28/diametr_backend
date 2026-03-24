@@ -24,7 +24,9 @@ export class UserService {
 
   async findAll() {
     this.logger.log('findAll');
-    const users = await this.prisma.user.findMany();
+    const users = await this.prisma.user.findMany({
+      orderBy: { id: 'desc' },
+    });
     return users;
   }
   async findOne(id: number) {

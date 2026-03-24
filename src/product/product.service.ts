@@ -30,14 +30,18 @@ export class ProductService {
         category: {
           select: { id: true, name: true, name_uz: true, name_ru: true },
         },
+        unit_type: true,
         items: {
+          where: { work_status: 'WORKING' },
           include: {
             unit_type: true,
-            _count: { select: { shop_products: true } },
+            _count: {
+              select: { shop_products: { where: { work_status: 'WORKING' } } },
+            },
           },
           orderBy: { id: 'desc' },
         },
-        _count: { select: { items: true } },
+        _count: { select: { items: { where: { work_status: 'WORKING' } } } },
       },
       orderBy: { id: 'desc' },
     });
@@ -55,6 +59,7 @@ export class ProductService {
         category: {
           select: { id: true, name: true, name_uz: true, name_ru: true },
         },
+        unit_type: true,
       },
       orderBy: { id: 'desc' },
     });
@@ -69,6 +74,7 @@ export class ProductService {
         category: {
           select: { id: true, name: true, name_uz: true, name_ru: true },
         },
+        unit_type: true,
         items: {
           where: { work_status: 'WORKING' },
           include: {
@@ -126,7 +132,7 @@ export class ProductService {
   }
 
   async remove(id: number) {
-    this.logger.log('remove');
+    this.logger.log('remove (archive)');
     const product = await this.prisma.product.findUnique({
       where: { id },
     });
@@ -134,8 +140,9 @@ export class ProductService {
       throw new NotFoundException('product not found');
     }
 
-    return await this.prisma.product.delete({
+    return await this.prisma.product.update({
       where: { id },
+      data: { work_status: 'DELETED' },
     });
   }
 }

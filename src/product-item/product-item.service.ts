@@ -15,7 +15,7 @@ export class ProductItemService {
   async create(data: CreateProductItemDto) {
     this.logger.log('create');
 
-    let product = await this.prisma.product.findUnique({
+    const product = await this.prisma.product.findUnique({
       where: {
         id: data.product_id,
       },
@@ -33,9 +33,10 @@ export class ProductItemService {
   async findAll() {
     this.logger.log('findAll');
     const productItems = await this.prisma.productItem.findMany({
+      where: { work_status: 'WORKING' },
       include: {
         unit_type: true,
-        product: { include: { category: true } },
+        product: { include: { category: true, unit_type: true } },
         _count: {
           select: {
             shop_products: { where: { work_status: 'WORKING' } },
@@ -47,7 +48,7 @@ export class ProductItemService {
   }
   async findOne(id: number) {
     this.logger.log('findOne');
-    let productItem = await this.prisma.productItem.findUnique({
+    const productItem = await this.prisma.productItem.findUnique({
       where: { id },
       include: { unit_type: true, product: { include: { category: true } } },
     });
@@ -60,14 +61,14 @@ export class ProductItemService {
 
   async update(id: number, data: UpdateProductItemDto) {
     this.logger.log('update');
-    let productItem = await this.prisma.productItem.findUnique({
+    const productItem = await this.prisma.productItem.findUnique({
       where: { id },
     });
     if (!productItem) {
       throw new NotFoundException('productItem not found');
     }
     if (data.product_id) {
-      let product = await this.prisma.product.findUnique({
+      const product = await this.prisma.product.findUnique({
         where: {
           id: data.product_id,
         },
@@ -84,16 +85,17 @@ export class ProductItemService {
   }
 
   async remove(id: number) {
-    this.logger.log('remove');
-    let productItem = await this.prisma.productItem.findUnique({
+    this.logger.log('remove (archive)');
+    const productItem = await this.prisma.productItem.findUnique({
       where: { id },
     });
     if (!productItem) {
       throw new NotFoundException('productItem not found');
     }
 
-    return await this.prisma.productItem.delete({
+    return await this.prisma.productItem.update({
       where: { id },
+      data: { work_status: 'DELETED' },
     });
   }
 }

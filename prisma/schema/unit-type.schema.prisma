@@ -3,6 +3,7 @@ model UnitType {
     name   String  // "Kilogramm"
     symbol String  // "kg"
 
+    products      Product[]
     product_items ProductItem[]
 
     createdAt DateTime @default(now())

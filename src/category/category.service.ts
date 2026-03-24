@@ -22,7 +22,10 @@ export class CategoryService {
 
   async findAll() {
     this.logger.log('findAll');
-    const categories = await this.prisma.category.findMany();
+    const categories = await this.prisma.category.findMany({
+      where: { work_status: 'WORKING' },
+      orderBy: { id: 'desc' },
+    });
     return categories;
   }
 
@@ -101,7 +104,7 @@ export class CategoryService {
   }
 
   async remove(id: number) {
-    this.logger.log('remove');
+    this.logger.log('remove (archive)');
     let category = await this.prisma.category.findUnique({
       where: { id },
     });
@@ -109,8 +112,9 @@ export class CategoryService {
       throw new NotFoundException('category not found');
     }
 
-    return await this.prisma.category.delete({
+    return await this.prisma.category.update({
       where: { id },
+      data: { work_status: 'DELETED' },
     });
   }
 }

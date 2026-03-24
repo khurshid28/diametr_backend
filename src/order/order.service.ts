@@ -92,7 +92,13 @@ export class OrderService {
               include: {
                 product_item: {
                   include: {
-                    product: true,
+                    product: {
+                      include: {
+                        category: true,
+                        unit_type: true,
+                      },
+                    },
+                    unit_type: true,
                   },
                 },
               },
@@ -108,10 +114,20 @@ export class OrderService {
               );
             }
 
+            const pi = shopProduct.product_item;
+            const prod = pi?.product;
             await tx.orderProduct.create({
               data: {
                 ...e,
-                amount: shopProduct.price,
+                amount: shopProduct.bonus_price ?? shopProduct.price,
+                product_name: prod?.name ?? null,
+                category_name: prod?.category?.name ?? null,
+                variant_name: pi?.name ?? null,
+                variant_color: pi?.color ?? null,
+                variant_value: pi?.value != null ? String(pi.value) : null,
+                variant_size: pi?.size ?? null,
+                unit_symbol:
+                  pi?.unit_type?.symbol ?? prod?.unit_type?.symbol ?? null,
               },
             });
           }),
@@ -149,6 +165,7 @@ export class OrderService {
   async findAll() {
     this.logger.log('findAll');
     const orders = await this.prisma.order.findMany({
+      orderBy: { id: 'desc' },
       include: {
         shop: true,
         products: {
@@ -157,7 +174,10 @@ export class OrderService {
               include: {
                 product_item: {
                   include: {
-                    product: true,
+                    product: {
+                      include: { category: true, unit_type: true },
+                    },
+                    unit_type: true,
                   },
                 },
               },
@@ -180,7 +200,12 @@ export class OrderService {
             shop_product: {
               include: {
                 product_item: {
-                  include: { product: { select: { name: true } } },
+                  include: {
+                    product: {
+                      include: { category: true, unit_type: true },
+                    },
+                    unit_type: true,
+                  },
                 },
               },
             },
@@ -202,7 +227,10 @@ export class OrderService {
               include: {
                 product_item: {
                   include: {
-                    product: true,
+                    product: {
+                      include: { category: true, unit_type: true },
+                    },
+                    unit_type: true,
                   },
                 },
               },

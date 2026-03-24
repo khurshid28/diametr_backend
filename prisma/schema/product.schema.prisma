@@ -11,6 +11,9 @@ model Product {
     category_id Int?
     category    Category? @relation(fields: [category_id], references: [id])
 
+    unit_type_id Int?
+    unit_type    UnitType? @relation(fields: [unit_type_id], references: [id])
+
     createdt  DateTime @default(now())
     updatedAt DateTime @updatedAt
 

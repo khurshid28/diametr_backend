@@ -29,7 +29,7 @@ export class CreateShopProductDto {
   price: number;
 
   @IsNumber()
-  @Min(1)
+  @Min(0)
   count: number;
 
   @IsOptional()

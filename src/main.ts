@@ -25,7 +25,7 @@ async function main() {
   app.useBodyParser('urlencoded', { limit: '20mb', extended: true });
   app.useBodyParser('text', { limit: '20mb', extended: true });
 
-  app.useGlobalPipes(new ValidationPipe({ transform: true }));
+  app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
   app.useGlobalInterceptors(new ResponseLoggingInterceptor());
   app.useGlobalFilters(new GlobalExceptionFilter());
 
@@ -38,9 +38,9 @@ async function main() {
     .setTitle('Diametr API')
     .setDescription(
       `## Diametr backend REST API\n\n` +
-      `**Base URL:** \`/api/v1\`\n\n` +
-      `Barcha himoyalangan endpointlar uchun **Authorize** tugmasini bosing va ` +
-      `\`Bearer <token>\` formatida JWT tokeningizni kiriting.`,
+        `**Base URL:** \`/api/v1\`\n\n` +
+        `Barcha himoyalangan endpointlar uchun **Authorize** tugmasini bosing va ` +
+        `\`Bearer <token>\` formatida JWT tokeningizni kiriting.`,
     )
     .setVersion('1.0.0')
     .setContact('Diametr', 'https://diametr.uz', 'admin@diametr.uz')
@@ -55,32 +55,32 @@ async function main() {
       },
       'JWT',
     )
-    .addTag('Auth',       'Kirish / chiqish')
-    .addTag('User',       'Foydalanuvchilar')
-    .addTag('Admin',      'Admin paneli')
-    .addTag('Shop',       'Do\'konlar')
-    .addTag('Product',    'Mahsulotlar')
+    .addTag('Auth', 'Kirish / chiqish')
+    .addTag('User', 'Foydalanuvchilar')
+    .addTag('Admin', 'Admin paneli')
+    .addTag('Shop', "Do'konlar")
+    .addTag('Product', 'Mahsulotlar')
     .addTag('Product-Item', 'Mahsulot variantlari')
-    .addTag('Category',   'Kategoriyalar')
-    .addTag('Order',      'Buyurtmalar')
-    .addTag('Service',    'Xizmatlar')
-    .addTag('Worker',     'Ustalar / ishchilar')
-    .addTag('Ad',         'Reklamalar')
-    .addTag('New',        'Yangiliklar')
-    .addTag('Region',     'Hududlar')
-    .addTag('Payment',    'To\'lovlar')
+    .addTag('Category', 'Kategoriyalar')
+    .addTag('Order', 'Buyurtmalar')
+    .addTag('Service', 'Xizmatlar')
+    .addTag('Worker', 'Ustalar / ishchilar')
+    .addTag('Ad', 'Reklamalar')
+    .addTag('New', 'Yangiliklar')
+    .addTag('Region', 'Hududlar')
+    .addTag('Payment', "To'lovlar")
     .addTag('Promo-Code', 'Promo kodlar')
-    .addTag('Shop-Product', 'Do\'kon mahsulotlari')
+    .addTag('Shop-Product', "Do'kon mahsulotlari")
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
 
   SwaggerModule.setup('docs', app, document, {
     swaggerOptions: {
-      persistAuthorization: true,          // sahifa yangilananda token saqlansin
-      filter: true,                        // endpointlarni qidiruv
-      displayRequestDuration: true,        // so'rov vaqti ko'rinsin
-      docExpansion: 'none',                // default yopiq (chiroyliroq)
+      persistAuthorization: true, // sahifa yangilananda token saqlansin
+      filter: true, // endpointlarni qidiruv
+      displayRequestDuration: true, // so'rov vaqti ko'rinsin
+      docExpansion: 'none', // default yopiq (chiroyliroq)
       defaultModelsExpandDepth: 2,
       tryItOutEnabled: true,
     },

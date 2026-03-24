@@ -28,7 +28,7 @@ export class WorkerService {
         id: data.service_id,
       },
     });
-    
+
     if (!service) {
       throw new NotFoundException('service not found');
     }
@@ -46,7 +46,9 @@ export class WorkerService {
 
   async findAll() {
     this.logger.log('findAll');
-    const workers = await this.prisma.worker.findMany();
+    const workers = await this.prisma.worker.findMany({
+      orderBy: { id: 'desc' },
+    });
     return workers;
   }
   async findOne(id: number) {

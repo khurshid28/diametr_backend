@@ -67,6 +67,7 @@ export class AdService {
   async findAll() {
     this.logger.log('findAll');
     const payments = await this.prisma.ad.findMany({
+      orderBy: { id: 'desc' },
       include: {
         shop: true,
         worker: true,

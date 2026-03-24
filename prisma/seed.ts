@@ -1,241 +1,947 @@
-﻿import { PrismaClient, WORK_STATUS, PRODUCT_TYPE } from '@prisma/client'
+﻿/**
+ * seed.ts — Diametr stroy-market uchun to'liq seed
+ *
+ * npm run seed
+ *
+ * Yaratadi:
+ *   • Regionlar (Toshkent tumanlari)
+ *   • O'lchov birliklari (UnitType)
+ *   • Kategoriyalar (qurilish materiallari)
+ *   • Har bir kategoriyaga tovarlar (Product)
+ *   • Har bir tovarga variantlar (ProductItem)
+ *   • Test do'konlar + shopProduct
+ */
 
-const prisma = new PrismaClient()
+import { PrismaClient, WORK_STATUS } from '@prisma/client';
 
+const prisma = new PrismaClient();
+
+/* ═══════════════════════════════════════════════════════════════
+   1. REGIONLAR
+   ═══════════════════════════════════════════════════════════════ */
 const regions = [
-  { name: "Yunusobod" },
-  { name: "Chilonzor" },
-  { name: "Mirzo Ulug'bek" },
-  { name: "Shayxontohur" },
-  { name: "Yakkasaroy" },
-  { name: "Uchtepa" },
-  { name: "Olmazar" },
-  { name: "Sergeli" },
-  { name: "Bektemir" },
-  { name: "Yashnobod" },
-]
+  'Yunusobod',
+ 
+ 
+ 
+  'Chilonzor',
+ 
+ 
+ 
+  "Mirzo Ulug
+' bek",
+ 
+  'Shayxontohur',
+  'Yakkasaroy',
+  'Uchtepa',
+  'Olmazar',
+  'Sergeli',
+  'Bektemir',
+  'Yashnobod',
+  'Mirobod',
+];
 
-const categories = [
-  {
-    name_uz: "Tsement va qorishma", name_ru: "Цемент и смеси", name: "Tsement va qorishma",
-    products: [
-      { name_uz: "Tsement M400", name_ru: "Цемент М400", name: "Tsement M400", type: PRODUCT_TYPE.WEIGHT, items: ["50 kg", "25 kg"] },
-      { name_uz: "Tsement M500", name_ru: "Цемент М500", name: "Tsement M500", type: PRODUCT_TYPE.WEIGHT, items: ["50 kg", "25 kg"] },
-      { name_uz: "Gips qorishma", name_ru: "Гипсовая смесь", name: "Gips qorishma", type: PRODUCT_TYPE.WEIGHT, items: ["30 kg", "5 kg"] },
-      { name_uz: "Shtukaturka", name_ru: "Штукатурка", name: "Shtukaturka", type: PRODUCT_TYPE.WEIGHT, items: ["25 kg", "5 kg"] },
-      { name_uz: "Plitka kleyi", name_ru: "Плиточный клей", name: "Plitka kleyi", type: PRODUCT_TYPE.WEIGHT, items: ["25 kg", "5 kg"] },
-    ]
-  },
-  {
-    name_uz: "G'isht va bloklar", name_ru: "Кирпич и блоки", name: "Gisht va bloklar",
-    products: [
-      { name_uz: "Qizil g'isht", name_ru: "Красный кирпич", name: "Qizil gisht", type: PRODUCT_TYPE.SIZE, items: ["M100", "M150", "M200"] },
-      { name_uz: "Silikat g'isht", name_ru: "Силикатный кирпич", name: "Silikat gisht", type: PRODUCT_TYPE.SIZE, items: ["M150", "M200"] },
-      { name_uz: "Gaz beton blok", name_ru: "Газобетонный блок", name: "Gaz beton blok", type: PRODUCT_TYPE.SIZE, items: ["200x300x600", "100x300x600"] },
-      { name_uz: "Penobeton blok", name_ru: "Пенобетонный блок", name: "Penobeton blok", type: PRODUCT_TYPE.SIZE, items: ["200x300x600", "150x300x600"] },
-    ]
-  },
-  {
-    name_uz: "Armatura va metalloprokat", name_ru: "Арматура и металлопрокат", name: "Armatura",
-    products: [
-      { name_uz: "Armatura", name_ru: "Арматура", name: "Armatura", type: PRODUCT_TYPE.SIZE, items: ["08 mm", "10 mm", "12 mm", "14 mm", "16 mm"] },
-      { name_uz: "Profil truba", name_ru: "Профильная труба", name: "Profil truba", type: PRODUCT_TYPE.SIZE, items: ["20x20x2", "40x40x2", "60x60x3"] },
-      { name_uz: "Shveller", name_ru: "Швеллер", name: "Shveller", type: PRODUCT_TYPE.SIZE, items: ["100 mm", "120 mm", "160 mm"] },
-      { name_uz: "Katanka sim", name_ru: "Проволока катанка", name: "Katanka", type: PRODUCT_TYPE.SIZE, items: ["06 mm", "08 mm"] },
-    ]
-  },
-  {
-    name_uz: "Parket va laminat", name_ru: "Паркет и ламинат", name: "Parket va laminat",
-    products: [
-      { name_uz: "Laminat 8mm", name_ru: "Ламинат 8мм", name: "Laminat 8mm", type: PRODUCT_TYPE.COLOR, items: ["Eman ochiq", "Eman toq", "Qongiir", "Oq"] },
-      { name_uz: "Laminat 12mm", name_ru: "Ламинат 12мм", name: "Laminat 12mm", type: PRODUCT_TYPE.COLOR, items: ["Eman", "Yongiq", "Kulrang"] },
-      { name_uz: "Parket taxta", name_ru: "Паркетная доска", name: "Parket taxta", type: PRODUCT_TYPE.COLOR, items: ["Eman", "Teak", "Wenge"] },
-      { name_uz: "Linoleum", name_ru: "Линолеум", name: "Linoleum", type: PRODUCT_TYPE.COLOR, items: ["Bir rangli", "Gulli", "Toshdek"] },
-    ]
-  },
-  {
-    name_uz: "Boyoq va lak", name_ru: "Краски и лаки", name: "Boyoq va lak",
-    products: [
-      { name_uz: "Akril boyoq", name_ru: "Акриловая краска", name: "Akril boyoq", type: PRODUCT_TYPE.COLOR, items: ["Oq", "Sariq", "Moviy", "Yashil", "Qizil", "Kulrang"] },
-      { name_uz: "Fasad boyoq", name_ru: "Фасадная краска", name: "Fasad boyoq", type: PRODUCT_TYPE.LITR, items: ["3 litr", "5 litr", "15 litr"] },
-      { name_uz: "Emal boyoq", name_ru: "Эмаль", name: "Emal boyoq", type: PRODUCT_TYPE.COLOR, items: ["Oq", "Kulrang", "Sariq"] },
-      { name_uz: "Parket laki", name_ru: "Лак паркетный", name: "Parket laki", type: PRODUCT_TYPE.LITR, items: ["1 litr", "2.5 litr", "5 litr"] },
-      { name_uz: "Grunt", name_ru: "Грунтовка", name: "Grunt", type: PRODUCT_TYPE.LITR, items: ["5 litr", "10 litr", "20 litr"] },
-    ]
-  },
-  {
-    name_uz: "Santexnika", name_ru: "Сантехника", name: "Santexnika",
-    products: [
-      { name_uz: "PP truba", name_ru: "Труба полипропиленовая", name: "PP truba", type: PRODUCT_TYPE.SIZE, items: ["20 mm", "25 mm", "32 mm", "40 mm", "50 mm"] },
-      { name_uz: "Unitaz", name_ru: "Унитаз", name: "Unitaz", type: PRODUCT_TYPE.COLOR, items: ["Oq", "Kulrang"] },
-      { name_uz: "Rakovinna", name_ru: "Раковина", name: "Rakovinna", type: PRODUCT_TYPE.SIZE, items: ["50 sm", "60 sm", "80 sm"] },
-      { name_uz: "Kran smesitel", name_ru: "Смеситель", name: "Kran smesitel", type: PRODUCT_TYPE.COLOR, items: ["Xrom", "Oltin", "Qora"] },
-    ]
-  },
-  {
-    name_uz: "Elektr materiallari", name_ru: "Электрические материалы", name: "Elektr materiallari",
-    products: [
-      { name_uz: "Elektr kabel", name_ru: "Кабель электрический", name: "Elektr kabel", type: PRODUCT_TYPE.SIZE, items: ["1.5 mm2", "2.5 mm2", "4 mm2", "6 mm2", "10 mm2"] },
-      { name_uz: "Rozetka", name_ru: "Розетка", name: "Rozetka", type: PRODUCT_TYPE.COLOR, items: ["Oq", "Kulrang", "Qora"] },
-      { name_uz: "Vyklyuchatel", name_ru: "Выключатель", name: "Vyklyuchatel", type: PRODUCT_TYPE.COLOR, items: ["Oq", "Qora"] },
-      { name_uz: "LED lampa", name_ru: "LED лампа", name: "LED lampa", type: PRODUCT_TYPE.SIZE, items: ["9W E27", "12W E27", "15W E27", "7W GU10"] },
-    ]
-  },
-  {
-    name_uz: "Tom materiallari", name_ru: "Кровельные материалы", name: "Tom materiallari",
-    products: [
-      { name_uz: "Profnastil", name_ru: "Профнастил", name: "Profnastil", type: PRODUCT_TYPE.COLOR, items: ["Qizil", "Yashil", "Kok", "Jigarrang"] },
-      { name_uz: "Metallcherepitsa", name_ru: "Металлочерепица", name: "Metallcherepitsa", type: PRODUCT_TYPE.COLOR, items: ["Qizil", "Yashil", "Kok"] },
-      { name_uz: "Shifer", name_ru: "Шифер", name: "Shifer", type: PRODUCT_TYPE.SIZE, items: ["7 tolqinli", "8 tolqinli"] },
-      { name_uz: "Gidroizolyatsiya", name_ru: "Гидроизоляция", name: "Gidroizolyatsiya", type: PRODUCT_TYPE.SIZE, items: ["1.5 mm", "2 mm", "3 mm"] },
-    ]
-  },
-  {
-    name_uz: "Plitka va keramika", name_ru: "Плитка и керамика", name: "Plitka va keramika",
-    products: [
-      { name_uz: "Pol plitka", name_ru: "Плитка для пола", name: "Pol plitka", type: PRODUCT_TYPE.SIZE, items: ["30x30 sm", "40x40 sm", "60x60 sm", "80x80 sm"] },
-      { name_uz: "Devor plitka", name_ru: "Настенная плитка", name: "Devor plitka", type: PRODUCT_TYPE.SIZE, items: ["20x30 sm", "25x50 sm", "30x60 sm"] },
-      { name_uz: "Gresit", name_ru: "Керамогранит", name: "Gresit", type: PRODUCT_TYPE.SIZE, items: ["60x60 sm", "80x80 sm", "120x60 sm"] },
-      { name_uz: "Mozaika", name_ru: "Мозаика", name: "Mozaika", type: PRODUCT_TYPE.COLOR, items: ["Oq", "Kulrang", "Kok", "Yashil"] },
-    ]
-  },
-  {
-    name_uz: "Eshik va derazalar", name_ru: "Двери и окна", name: "Eshik va derazalar",
-    products: [
-      { name_uz: "MDF eshik", name_ru: "Дверь МДФ", name: "MDF eshik", type: PRODUCT_TYPE.COLOR, items: ["Oq", "Eman", "Wenge", "Kulrang"] },
-      { name_uz: "Temir eshik", name_ru: "Металлическая дверь", name: "Temir eshik", type: PRODUCT_TYPE.COLOR, items: ["Qora", "Kumush", "Bronza"] },
-      { name_uz: "PVC deraza", name_ru: "Пластиковое окно ПВХ", name: "PVC deraza", type: PRODUCT_TYPE.SIZE, items: ["60x120 sm", "100x120 sm", "120x140 sm", "150x150 sm"] },
-    ]
-  },
-]
+/* ═══════════════════════════════════════════════════════════════
+   2. O'LCHOV BIRLI
+   ═══════════════════════════════════════════════════════════════ */
+const unitTypes = [
+  { name: 'Kilogramm', symbol: 'kg' },
+  { name: 'Tonna', symbol: 't' },
+  { name: 'Litr', symbol: 'L' },
+  { name: 'Metr', symbol: 'm' },
+  { name: 'Kvadrat metr', symbol: 'm²' },
+  { name: 'Dona', symbol: 'dona' },
+  { name: "O'lcham (x*y)", symbol: 'x*y' },
+  { name: "O'lcham (x*y*z)", symbol: 'x*y*z' },
+];
 
-const shopsData = [
-  { name: "Mirzo Qurilish Markazi",        address: "Mirzo Ulugbek tumani, Amir Temur kochasi 45",    region: "Mirzo Ulug'bek",  lat: 41.3319, lon: 69.3350, inn: "301234567", delivery_amount: 30000 },
-  { name: "Grand Stroy Toshkent",          address: "Yunusobod tumani, Yunusobod kochasi 12",          region: "Yunusobod",        lat: 41.3638, lon: 69.3468, inn: "302345678", delivery_amount: 25000 },
-  { name: "Chilonzor Qurilish Bozori",     address: "Chilonzor tumani, Qoratosh massivi 7",            region: "Chilonzor",        lat: 41.2995, lon: 69.2120, inn: "303456789", delivery_amount: 20000 },
-  { name: "Mega Stroy",                    address: "Shayxontohur tumani, Navoiy kochasi 89",          region: "Shayxontohur",     lat: 41.3123, lon: 69.2689, inn: "304567890", delivery_amount: 35000 },
-  { name: "Rustam Qurilish",               address: "Uchtepa tumani, Uchtepa kochasi 23",              region: "Uchtepa",          lat: 41.2878, lon: 69.2034, inn: "305678901", delivery_amount: 20000 },
-  { name: "Al-Baraka Building Materials",  address: "Yakkasaroy tumani, Shota Rustaveli kochasi 14",   region: "Yakkasaroy",       lat: 41.3041, lon: 69.2712, inn: "306789012", delivery_amount: 30000 },
-  { name: "Toshkent Santexnika Markazi",   address: "Olmazar tumani, Olmazar kochasi 56",              region: "Olmazar",          lat: 41.3289, lon: 69.3112, inn: "307890123", delivery_amount: 15000 },
-  { name: "Ibrohim Qurilish Dunyosi",      address: "Sergeli tumani, Sergeli kochasi 3",               region: "Sergeli",          lat: 41.2287, lon: 69.2756, inn: "308901234", delivery_amount: 40000 },
-  { name: "Novostroy Plus",                address: "Yashnobod tumani, Yashnobod kochasi 78",          region: "Yashnobod",        lat: 41.3089, lon: 69.3345, inn: "309012345", delivery_amount: 25000 },
-  { name: "Pro Stroy Market",              address: "Mirzo Ulugbek tumani, Parkent kochasi 112",       region: "Mirzo Ulug'bek",  lat: 41.3456, lon: 69.3567, inn: "310123456", delivery_amount: 30000 },
-  { name: "Baxtiyar Qurilish Savdosi",     address: "Yunusobod tumani, Mustaqqillik kochasi 34",       region: "Yunusobod",        lat: 41.3556, lon: 69.3201, inn: "311234567", delivery_amount: 20000 },
-  { name: "Hamid va Sheriklari",           address: "Chilonzor tumani, Buyuk Ipak Yoli 19",            region: "Chilonzor",        lat: 41.2912, lon: 69.2234, inn: "312345678", delivery_amount: 25000 },
-  { name: "Stroy City",                    address: "Shayxontohur tumani, Labzak kochasi 67",          region: "Shayxontohur",     lat: 41.3201, lon: 69.2801, inn: "313456789", delivery_amount: 35000 },
-  { name: "Toshkent Building Hub",         address: "Bektemir tumani, Sanoat kochasi 5",               region: "Bektemir",         lat: 41.2645, lon: 69.3712, inn: "314567890", delivery_amount: 50000 },
-  { name: "Elektron Stroy",               address: "Uchtepa tumani, Kichik Xalqa yoli 8",              region: "Uchtepa",          lat: 41.2923, lon: 69.1978, inn: "315678901", delivery_amount: 20000 },
-]
+/* ═══════════════════════════════════════════════════════════════
+   3. KATEGORIYALAR + TOVARLAR + VARIANTLAR
+   ═══════════════════════════════════════════════════════════════
 
-const priceRanges: Record<string, [number, number]> = {
-  "Tsement va qorishma":      [25,  80],
-  "Gisht va bloklar":         [500, 2500],
-  "Armatura":                 [30,  300],
-  "Parket va laminat":        [40,  250],
-  "Boyoq va lak":             [30,  150],
-  "Santexnika":               [50,  800],
-  "Elektr materiallari":      [10,  200],
-  "Tom materiallari":         [20,  180],
-  "Plitka va keramika":       [40,  400],
-  "Eshik va derazalar":       [300, 3000],
+   unitRef  → unitTypes[] dagi symbol orqali bog'lanadi
+   Har bir item: { name?, color?, value?, size?, unitRef? }
+   ─ value + unitRef  = masalan 50 kg, 25 kg
+   ─ color            = "#HEX" rang
+   ─ size             = "120x60" o'lcham
+*/
+
+interface ItemDef {
+  name?: string;
+  color?: string;
+  value?: number;
+  size?: string;
+  unitRef?: string; // -> unitTypes.symbol
 }
 
-function randomPrice(min: number, max: number) {
-  return Math.floor(Math.random() * (max - min + 1) + min) * 1000
+interface ProductDef {
+  name_uz: string;
+  name_ru: string;
+  unitRef: string; // product-level unit
+  items: ItemDef[];
 }
 
+interface CategoryDef {
+  name_uz: string;
+  name_ru: string;
+  products: ProductDef[];
+}
+
+       
+       
+const categories: CategoryDef[] = [
+  /* ────────── 1. Tsement va qrishma ────────── */
+  {
+    name_uz: 'Tsement va qorishma',
+    name_ru: 'Цемент и смеси',
+    products: [
+      {
+       
+       
+        name_uz: 'Tsement M400',
+        name_ru: 'Цемент М400',
+        unitRef: 'kg',
+        items: [
+          { name: 'Qop 50 kg', value: 50 },
+          { name: 'Qop 25 kg', value: 25 },
+        ],
+       
+       
+      },
+      {
+        name_uz: 'Tsement M500',
+        name_ru: 'Цемент М500',
+        unitRef: 'kg',
+        items: [
+          { name: 'Qop 50 kg', 
+v       alue: 50 },
+       
+          { name: 'Qop 25 kg', value: 25 },
+        ],
+      },
+      {
+        name_uz: 'Gips qorishma',
+        name_ru: 'Гипсовая смесь',
+        unitRef: 'kg',
+       
+       
+        items: [
+          { name: 'Standart', ue: 30 },
+          { name: 'Kichik qop', alue: 10 },
+        ],
+      },
+      {
+        name_uz: 'Shtukaturka',
+       
+       
+        name_ru: 'Штукатурка',
+        unitRef: 'kg',
+        items: [
+          { name: 'Standart', value: 25 },
+          { name: 'Kichik', value: 5 },
+        ],
+      },
+      {
+        name_uz: 'Plitka kleyi',
+        name_ru: 'Плиточный клей',
+        unitRef: 'kg',
+        items: [
+          { name: 'Standart', value: 25 },
+          { name: 'Kichik qop', value: 10 },
+        ],
+       
+       
+      },ame_uz: 'Quruq qorame_ru: 'ПескобетunitRef: 'kg',
+        items: [
+          { name: 'Qop 40 kg', value: 40 },
+          { name: 'Qop 25 kg', val
+       ue: 25 },
+       
+        ],
+
+  /* ────────── 2. G'isht va bloklar ────────── */
+  {
+       
+       
+    name_uz: "G'isht va bloklar",
+    name_ru: 'Кирпич и блоки',
+    products: [
+      {
+        name_uz: "Qizil g'isht",
+        name_ru: 'Красный кирпич',
+        unitRef: 'dona',
+        items: [{ name: 'M10
+       0' }, { name: 'M150' 
+       }, { name: 'M200' }],
+      },
+      {
+        name_uz: "Silikat g'isht",
+        name_ru: 'Силикатный кирпич',
+        unitRef: 'dona',
+        items: [{ name: 'Oq M150' }, { name: 'Oq M200' }],
+      },
+       
+       
+      {
+        name_uz: 'Gaz-beton blok',
+        name_ru: 'Газобетонный лок',
+        unitRef: 'x*y*z',
+        items: [
+          { name: '200×300×600', size: '200x300x600' },
+          { name: '100×300×600', size: '100x300x600' },
+          { name: '150×300×600', size: '150x300x600' },
+        ],
+      },
+      {
+        name_uz: 'Penoblok',
+        name_ru: 'Пеноблок',
+        unitRef: 'x*y*z',
+        items: [
+       
+       
+          { name: '200×300×600', size: '200x300x600' },
+          { name: '100×300×600' size: '100x300x600' },
+        ],
+      },
+      {
+        name_uz: 'Keramzitoblok',
+        name_ru: 'Керамзитоблок',
+        unitRef: 'x*y*z',
+        items: [
+          { name: '190×190×390',
+        size: '190x190x390' },
+       
+          { name: '90×190×390', size: '90x190x390' },
+        ],
+      },
+    ],
+  },
+
+  /* ────────── 3. Metall mahsulotlar ────────── */
+  {
+    name_uz: 'Metall mahsulotla
+     r  ',
+       
+    name_ru: 'Металлопродукция',
+    products: [
+      {
+        name_uz: 'Armatura',
+        name_ru: 'Арматура',
+        unitRef: 'm',
+        items: [
+          { name: 'A400 ∅8 mm', value: 8 },
+          { name:"'A400 ∅10mm'" 
+     v  alue: 10 },
+       
+          { name: 'A400 ∅12 mm', value: 12 },
+          { name: 'A400 ∅14 mm', vlue: 14 },
+          { name: 'A400 ∅16 mm', value: 16 },
+        ],
+      },
+      {
+        name_uz: 'Profil truba',
+        name_ru: 'Профильная труба',
+        unitRef: 'm',
+        items: [
+          { name: '20×20 mm', size: '20x20' },
+          { name: '40×20 mm', size: '40x20' },
+          { name: '40×40 mm', size: '40x40' },
+          { name: '60×40 mm', size: '60x40' },
+        ],""
+       
+       
+      },
+      {
+        name_uz: 'List metall',
+        name_ru: 'Листовой металл',
+        unitRef: 'm²',
+        items: [
+          { name: '0.5 mm qalinlik', value: 0.5 },
+          { name: '0.7 mm qalinli
+    k   ', value: 0.7 },
+       
+          { name: '1.0 mm qalinlik', value: 1.0 },
+          { name: '2.0 mm qalinlik', value: 2.0 },
+        ],
+      },
+      {
+        name_uz: "Setka (to'r)",
+        name_ru: 'Сетка',
+        unitRef: 'm²',
+       
+       
+        items: [
+          { name: '50×50  (∅3)', size: '50x50' },
+          { name: '100×100 m (∅4)', size: '100x100' },
+        ],
+      },
+    ],
+  },
+
+  /* ────────── 4. Yog'och va
+        fanera ────────── */
+       
+  {
+    name_uz: "Yog'och va fera",
+    name_ru: 'Древесина и фнера',
+    products: [
+      {
+        name_uz: "Brus (yog'ochdan)",
+        name_ru: 'Брус',
+        unitRef: 'm',
+        items: [
+          { name: '50×50 mm', size: '50x50' },
+          { name: '100×100 mm', size: '100x100' },
+          { name: '150×150 mm', size: '150x150' },
+        ],
+      },
+      {
+        name_uz: "Doska (txta)',"
+       
+       
+        name_ru: 'Доска обрезная',
+        unitRef: 'm',
+        items: [
+          { name: '25×150 m', size: '25x150' },
+          { name: '40×150 mm', size: '40x150' },
+          { name: '50×200 mm', size: '50x200' },
+        ],
+      },
+      {""
+       
+       
+        name_uz: 'Fanera',
+        name_ru: 'Фанера
+        unitRef: 'm²',
+        items: [
+          { name: '4 mm', value: 4 },
+          { name: '10 mm', value: 10 },
+          { name: '18 mm', value: 18 },
+          { name: '21 m
+     m  ', value: 21 },
+       
+        ],
+      },
+      {
+        name_uz: 'OSB plita',
+        name_ru: 'OSB плита',
+        unitRef: 'm²',
+        items: [
+       
+       
+          { name: '9 mm', value: 9 },
+          { name: '12 mm', value: 12 },
+          { name: '18 mm', value: 18 },
+        ],
+      },
+    ],
+  },""
+       
+       
+
+  /* ────────── 5. Bo'yo laklar ────────── */
+  {
+    name_uz: "Bo'yoq va lakar",
+    name_ru: 'Крас"и  л"ки,
+    products: [
+      {
+        name_uz: "Devor bo'yoqi (ichki)",
+        name_ru: 'Краска интерьерная',
+        unitRef: 'L',
+        items: [
+          { name: 'Oq', color: '#FFFFFF', value: 10 },
+          { name: 'Oq', color: '#FFFFFF', value: 5 },
+          { name: 'Krem', color: '#FFFDD0', value: 10 },
+          { name: 'Kulrang', color: '#808080', value: 10 },
+        ],
+      },
+      {
+       
+       
+        name_uz: "Fasad bo'yoqi",
+        name_ru: 'Фасадная краска
+        unitRef: 'L',
+        items: [
+          { name: 'Oq', color: '#FFFFFF', value: 20 },
+          { name: 'Sariq', color: '#FFD700', value: 20 },
+          { name: 'Havorang', color: '#87CEEB', value: 20 },
+        ],
+       
+       
+      },
+      {
+        name_uz: 'Lak',
+        name_ru: 'Лак',
+        unitRef: 'L',
+        items: [
+          { name: 'Shaffof', value: 1 },
+       
+       
+          { name: 'Shaffof', value: 5 },
+        ],
+      },
+      {
+        name_uz: 'Grunt (astar)',
+        name_ru: 'Грунтовка',
+        unitRef: 'L',
+        items: [
+       
+       
+          { name: 'Universal', value: 5 },
+          { name: 'Universal', val: 10 },
+        ],
+      },
+      {
+        name_uz: "Emal bo'yoq",
+        name_ru: 'Эмаль',
+        unitRef: 'L',
+        items: [
+          { name: 'Oq', color: '#FFFFFF', value: 2.5 },
+          { name: 'Qora', color: '#000000', value: 2.5 },
+          { name: 'Qizil', color: '#FF0000', value: 2.5 },
+          { name: "Ko'k", color: '#0000FF', value: 2.5 },
+          { name: 'Yashil', color: '#008000', value: 2.5 },
+        ],
+       
+       
+      },
+    ],
+  },
+
+  /* ────────── 6. Santexnika ────────── */
+  {
+    name_uz: 'Santexnika',
+    name_ru: 'Сантехника',
+    products: [
+       
+       
+      {
+        name_uz: 'Unitaz',
+        name_ru: 'Унитаз',
+        unitRef: 'dona',
+        items: [
+          { name: 'Oq standart', color: '#FFFFFF' },
+          { name: 'Oq premium', color: '#FFFFFF' },
+          { name: 'Suyak rang', 
+c       olor: '#FAEBD7' },
+       
+        ],
+      },
+      {
+        name_uz: 'Rakovina (lavabo)',
+        name_ru: 'Раковина',
+        unitRef: 'dona',
+        items: [""
+       
+       
+          { name{ name: 'Oq 60 s  
+        name_uz: 'Polipropilen truba (PPR)',
+        name_ru: 'Труба ПП',
+        unitRef: 'm',
+        items: [
+          { name: '∅20 mm', value: 20 },
+          { name: '∅25 mm', value: 25 },
+          { name: '∅32 mm', value: 32 },
+        ],
+      },
+      {
+        name_uz: 'Kran (aralashtirgich)',
+       
+       
+        name_ru: 'Смеситель',
+        unitRef: 'dona',
+        items: [
+          { name: 'Oshxona uchun', color: '#C0C0C0' },
+          { name: 'Hammom uchun', color: '#C0C0C0' },
+        ],
+      },
+    ],
+       
+       
+  },
+
+  /* ────────── 7. Elektr jihozlari ────────── */
+  {
+    name_uz: 'Elektr jihozlari',
+    name_ru: 'Электрика',
+    products: [
+      {
+       
+       
+        name_uz: 'Kabel (NYM)',
+        name_ru: '"абль"NY,
+        unitRef: 'm',
+        items: [
+          { name: '2×1.5 mm²', value: 1.5 },
+          { name: '2×2.5 mm²', value: 2.5 },
+          { name: '3×1.5 mm²', value: 1.5 },
+          { name: '3×2.5 mm²', value: 2.5 },
+        ],
+      },
+      {
+        name_uz: 'Rozetka',
+        name_ru: 'Розетка',
+        unitRef: 'dona',
+        items: [
+       
+       
+          { name: 'Oq (oddiy)', color: '#FFFFFF' },
+          { name: 'Kumush',olor: '#C0C0C0' },
+          { name: 'Suyak rang', color: '#FAEBD7' },
+        ],
+      },
+      {
+        name_uz: 'Vyklyuchatel',
+        name_ru: 'Выключатель'
+,       
+       
+        unitRef: 'dona',
+        items: [
+          { name: "Bir tumal" (q)', color: '#FFFFFF' },
+          { name: 'Ikki tugmali (oq)', color: '#FFFFFF' },
+        ],
+      },
+      {
+       
+       
+        name_uz:me_ru: '"втомт'," itRef: '"ona'"items: [{ name: '16A' }, { name: '25A' }, { name: '32A' }],
+      },
+    ],
+  },
+       
+       
+
+  /* ────────── 8. Plitka va kaf ────────── */
+  {
+    name_uz: 'Plitka va kafel',
+    name_ru: 'Плитка и кафель',
+    products: [
+      {
+        name_uz: 'Pol plitka (keramogranit)',
+        name_ru: 'Керамогранит',
+        unitRef: 'm²',
+        items: [
+          { name: 'Kulrang 60×60', color: '#808080', size: '60x60' },
+          { name: 'Bej 60×60', color: '#F5F5DC', size: '60x60' },
+          { name: 'Marmarsifat 80×80', color: '#F0EAD6', size: '80x80' },
+        ],
+       
+       
+      },
+      {
+        name_uz: 'Devor plika (kafel)',
+        name_ru: 'Кафель настенный',
+        unitRef: 'm²',
+        items: [
+          { name: 'Oq 25×40', color: '#FFFFFF', size: '25x40' },
+          { name: 'Havorang 30×6
+0       ', color: '#87CEEB', size: '
+3       0x60' },
+          { name: 'Bej 30×60', color: '#F5F5DC', size: '30x60' },
+        ],
+      },
+      {
+        name_uz: 'Mosaika',
+        name_ru: 'Мозаика',
+        unitRef: 'm²',
+       
+       
+        items: [
+          { name: "Ko'k", clor: '#0000FF' },
+          { name: 'Oq', colr: '#FFFFFF' },
+        ],
+      },
+    ],
+  },
+
+  /* ────────── 9. Tom yopish (krovlya) ────────── */
+  {
+    name_uz: 'Tom yopish materiallari',
+    name_ru: 'Кровля',
+    products: [
+      {
+        name_uz: 'Metallocherepit
+       sa',
+       
+        name_ru: 'Металлочерепица',
+        unitRef: 'm²',
+        items: [
+          { name: 'Qizil', color: '#8B0000' },
+          { name: 'Jigarrang', color: '#8B4513' },
+          { name: 'Yashil', color: '#006400' },
+        ],
+       
+       
+      },
+      {
+        name_uz: 'Profnastil',
+        name_ru: 'Профнастил',
+        unitRef: 'm²',
+        items: [
+          { name: 'C8 (kumus
+       h)', color: '#C0C0C0'
+        },
+          { name
+      {
+        name_uz: 'Shifer',
+        name_ru: 'Шифер',
+        unitRef: 'dona',
+        items: [{ name: "8 to'lqinli" }, { name: "6 to'lqinli" }],
+      },
+      {
+        name_uz: 'Gidroizolyatsiya (rulon)',
+        name_ru: 'Гидроизоляция',
+        unitRef: 'm²',
+        items: [
+       
+       
+          { name: 'Texnonikol', value: 10 },
+          { name: 'Bikrost', v 10 },
+        ],""
+      },
+    ],
+  },
+
+  /* ────────── 10. Izolyatsiya va utepli
+       tel ────────── */
+       
+  {
+    name_uz: 'Izolyatsiya materiallai',
+    name_ru: 'Изоляция и утепление'
+    products: [
+      {
+        name_uz: 'Penoplast (EPS)',
+        name_ru: 'Пенопласт',
+       
+       
+        unitRef: 'm²',
+        items: [
+          { name: '20 mm', value: 20 },
+          { name: '50 mm', value: 50 },
+          { name: '100 mm', value: 100 },
+        ],
+      },
+      {
+        name_uz: 'Mineral vata',
+        name_ru: 'Минеральная вата',
+        unitRef: 'm²',
+        items: [
+          { name: '50 mm', value: 50 },
+          { name: '100 mm', value: 100 },
+        ],
+      },""
+      {
+        name_uz: 'Penopolistirol (XPS)',
+        name_ru: 'Экструдированный полистирол',
+        unitRef: 'm²',
+        items: [
+          { name: '30 mm', value: 30 },
+          { name: '50 mm', value: 50 },
+        ],
+      },
+    ],
+  },
+
+  /* ────────── 11. Qum, shag'al, to'ldirgichlar ────────── */
+  {
+    name_uz: "Qum va shag'al",
+    name_ru: '
+       Песок и щебень',,
+     
+    products: [
+      {
+        name_uz: 'Qurilish qumi',
+        name_ru: 'Песок строительный',
+        unitRef: 't',
+        items: [
+          { name: 'Yuvulgan qum', value: 1 },
+          { name: 'Oddiy qum', value: 1 },
+        ],
+      },
+      {
+     ,
+   
+        name_uz: "Shag'al (shcheben)",
+        name_ru: 'Щебень',
+        unitRef: 't',
+        items: [
+          { name: 'Fr. 5–20 mm', value: 1 },
+          { name: 'Fr. 20–40 mm', value: 1 },
+        ],
+      },
+      {
+        name_uz: 'Keramzit',
+        name_ru: 'Керамзит',
+        unitRef: 'L
+   ',
+   
+        items: [{ name: 'Qop 50 L', value: 50 }],
+      },
+    ],
+  },
+     ,
+   
+
+  /* ────────── 12. Eshik va deraza ────────── */
+  {
+    name_uz: 'Eshik va derazalar',
+    name_ru: 'Двери и окна',
+    products: [
+      {
+        name_uz: 'Ichki eshik (MDF)',
+        name_ru: 'Межкомнатная дверь',
+        unitRef: 'dona',
+        items: [
+          { name: 'Oq 80×200', color: '#FFFFFF', size: '80x200' },
+          { name: "Yong'oq 80×200", color: '#8B4513', size: '80x200' },
+          { name: 'Wenge 80×200', color: '#3C1414', size: '80x200' },
+        ],
+      },
+      {
+        name_uz: 'Kirish eshik (metall)',
+        name_ru: 'Входная дверь',
+        unitRef: 'dona',
+        items: [
+          { name: 'Standart 86×205', size: '86x205' },
+          { name: 'Premium 96×205', size: '96x205' },
+        ],
+      },
+      {
+        name_uz: 'Plastik deraza',
+        name_ru: 'Пластиковое окно',
+        unitRef: 'dona',
+        items: [
+          { name: '1-kamerali 140×120', size: '140x120' },
+          { name: '2-kamerali 140×120', size: '140x120' },
+          { name: '2-kamerali 180×120', size: '180x120' },
+        ],
+      },
+    ],
+  },
+];
+
+/* ═══════════════════════════════════════════════════════════════
+   4. TEST DO'KONLAR
+   ═══════════════════════════════════════════════════════════════ */
+const shops = [
+               
+               
+  { name: 'Oltin Uy Stroy', address: 'Toshkent, Chilonzor 9-kvartal' },
+  { name: 'Mega Stroy Market', address: "Toshkent, Yunusobod, Bog'ishamol" },
+  { name: 'Qurilish Dunyosi', address: 'Toshkent, Sergeli, Yangi Sergeli' },
+];
+
+/* ═══════════════════════════════════════════════════════════════
+   MAIN
+   ═══════════════════════════════════════════════════════════════ */
 async function main() {
-  console.log("Seed boshlandi...\n")
-
-  // 1. Regionlar
-  const createdRegions: Record<string, number> = {}
-  for (let i = 0; i < regions.length; i++) {
-    const r = regions[i]
-    const region = await prisma.region.upsert({
-      where: { id: i + 1 },
-      update: { name: r.name },
-      create: { name: r.name },
-    })
-    createdRegions[r.name] = region.id
+  console.log('╔══════════════════════════════════════════════════╗');
+  console.log('║        🌱  DIAMETR SEED BOSHLANDI               ║');
+  console.log('╚══════════════════════════════════════════════════╝\n');
+""
+  /* ── Regionlar ──────────────────────────────────────────── */
+  console.log('📍  Regionlar...');
+  for (const name of regions) {
+    await prisma.region.upsert({
+      where: {
+        id: (await prisma.region.findFirst({ where: { name } }))?.id ?? 0,
+      },
+      update: {},
+      create: { name },
+    });
   }
-  console.log(`OK: ${regions.length} ta region`)
+  console.log(`   ✅ ${regions.length} ta region\n`);
 
-  // 2. Kategoriya + Product + ProductItem
-  const createdItems: Array<{ id: number; catName: string }> = []
+  /* ── O'lchov birliklari ─────────────────────────────────── */
+  console.log("📏  O'lchov birliklari...");
+  const unitMap = new Map<string, number>();
+  for (const ut of unitTypes) {
+    const existing = await prisma.unitType.findFirst({
+      where: {"symbol ut.symbol },"
+    });
+    if (existing) {
+      unitMap.set(ut.symbol, existing.id);
+    } else {
+      const created = await prisma.unitType.create({ data: ut });
+      unitMap.set(ut.symbol, created.id);
+    }
+  }
+  console.log(`   ✅ ${unitTypes.length} ta o'lchov birligi\n`);
+
+  /* ── Kategoriya → Tovar → Variant ───────────────────────── */
+  console.log('📦  Kategoriyalar va tovarlar...');
+  let catCount = 0,
+    prodCount = 0,
+    itemCount = 0;
 
   for (const cat of categories) {
-    const category = await prisma.category.create({
-      data: { name: cat.name, name_uz: cat.name_uz, name_ru: cat.name_ru, work_status: WORK_STATUS.WORKING },
-    })
+    // Upsert category
+    let dbCat = await prisma.category.findFirst({
+      where: { name_uz: cat.name_uz },
+    });
+             
+             
+    if (!dbCat) {
+      dbCat = await prisma.category.create({
+        data: { name: cat.name_uz, name_uz: cat.name_uz, name_ru: cat.name_ru },
+      });
+    }
+    catCount++;
+
     for (const prod of cat.products) {
-      const product = await prisma.product.create({
-        data: { name: prod.name, name_uz: prod.name_uz, name_ru: prod.name_ru, type: prod.type, work_status: WORK_STATUS.WORKING, category_id: category.id },
-      })
-      for (const itemName of prod.items) {
-        const item = await prisma.productItem.create({
-          data: { name: itemName, desc: prod.name_uz + " - " + itemName, work_status: WORK_STATUS.WORKING, product_id: product.id },
-        })
-        createdItems.push({ id: item.id, catName: cat.name })
+      // Upsert product
+      let dbProd = await prisma.product.findFirst({
+        where: { name_uz: prod.name_uz, category_id: dbCat.id },
+      });
+      if (!dbProd) {
+        dbProd
+     = await prisma.product.create({,
+  
+          data
+    : {,
+  
+            na
+    me: prod.name_uz,,
+  
+            na
+    me_uz: prod.name_uz,,
+  
+            na
+    me_ru: prod.name_ru,,
+  
+            ca
+    tegory_id: dbCat.id,,
+  
+            un
+    it_type_id: unitMap.get(prod.unitRef) ?? null,,
+  
+          },
+        });
+      }
+      prodCount++;
+
+   
+   
+ 
+      for (const item of
+    prod.items) {
+ 
+        const exists = await prisma.productItem.findFirst({
+          where: {
+            product_id: dbProd.id,
+            name: item.name ?? null,
+            color: item.color ?? null,
+            size: item.size ?? null,
+          },
+        });
+        if (!exists) {
+          await prisma.productItem.create({
+            data: {
+              name: item.name ?? null,
+              color: item.color ?? null,
+              value: item.value ?? null,
+              size: item.size ?? null,
+              product_id: dbProd.id,
+              unit_type_id: item.unitRef
+                ? (unitMap.get(item.unitRef) ?? null)
+                : null,
+            },
+          });
+        }
+        itemCount++;
       }
     }
-    console.log(`  OK: ${cat.name_uz}`)
   }
+  console.log(`   ✅ ${catCount} kategoriya`);
+  console.log(`   ✅ ${prodCount} ta tovar`);
+  console.log(`   ✅ ${itemCount} ta variant\n`);
 
-  // 3. Dokonlar
-  const shopIds: number[] = []
-  for (const shop of shopsData) {
-    const regionId = createdRegions[shop.region] || 1
-    const s = await prisma.shop.create({
-      data: {
-        name: shop.name, address: shop.address, region_id: regionId,
-        lat: shop.lat, lon: shop.lon, inn: shop.inn,
-        delivery_amount: shop.delivery_amount, work_status: WORK_STATUS.WORKING,
-        yandex_delivery: true, market_delivery: true, fixed_delivery: true,
-        expired: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-      },
-    })
-    shopIds.push(s.id)
+  /* ── Do'konlar ──────────────────────────────────────────── */
+  console.log("🏪  Test do'konlar...");
+  const dbShops: { id: number; name: string }[] = [];
+  for (const s of shops) {
+    let dbShop = await prisma.shop.findFirst({ where: { name: s.name } });
+    if (!dbShop) {
+      dbShop = await prisma.shop.create({
+        data: {
+          name: s.name,
+          address: s.address,
+          work_status: WORK_STATUS.WORKING,
+          expired: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        },
+      });
+    }
+    dbShops.push({ id: dbShop.id, name: dbShop.name ?? s.name });
   }
-  console.log(`OK: ${shopsData.length} ta dokon`)
+  console.log(`   ✅ ${dbShops.length} ta do'kon\n`);
 
-  // 4. ShopProduct
-  let total = 0
-  for (const shopId of shopIds) {
-    const shuffled = [...createdItems].sort(() => Math.random() - 0.5)
-    const selected = shuffled.slice(0, Math.floor(Math.random() * 20) + 20)
-    for (const item of selected) {
-      const [min, max] = priceRanges[item.catName] || [10, 500]
-      await prisma.shopProduct.create({
-        data: { shop_id: shopId, product_item_id: item.id, price: randomPrice(min, max), count: Math.floor(Math.random() * 200) + 10, work_status: WORK_STATUS.WORKING },
-      })
-      total++
+  /* ── Shop product (har bir do'konga random tovarlar) ──── */
+  console.log("🛒  Do'konlarga tovar tayinlash...");
+  const allItems = await prisma.productItem.findMany();
+  let spCount = 0;
+
+  for (const shop of dbShops) {
+    // Har bir do'konga ~60% tovarlarni randomly tayinlaymiz
+    const shuffled = allItems.sort(() => Math.random() - 0.5);
+    const toAssign = shuffled.slice(0, Math.floor(shuffled.length * 0.6));
+
+    for (const pi of toAssign) {
+      const exists = await prisma.shopProduct.findFirst({
+        where: { shop_id: shop.id, product_item_id: pi.id },
+      });
+      if (!exists) {
+        const basePrice = Math.floor(Math.random() * 400 + 20) * 1000; // 20_000 - 420_000
+        const hasDiscount = Math.random() < 0.3;
+        await prisma.shopProduct.create({
+          data: {
+            shop_id: shop.id,
+            product_item_id: pi.id,
+            price: basePrice,
+            bonus_price: hasDiscount
+              ? Math.floor(basePrice * (0.75 + Math.random() * 0.15))
+              : null,
+            count: Math.floor(Math.random() * 200) + 5,
+          },
+        });
+        spCount++;
+      }
     }
   }
-  console.log(`OK: ${total} ta shopProduct`)
+  console.log(`   ✅ ${spCount} ta shop-product yaratildi\n`);
 
-  // 5. Reklamalar (Bannerlar)
-  const adsData = [
-    { title: "Diametr Qurilish Bozori", subtitle: "Eng yirik qurilish materiallari markazi" },
-    { title: "Tsement va g'isht", subtitle: "Ulgurji narxlarda, tez yetkazib berish" },
-    { title: "Temir va armatura", subtitle: "Zavod narxlarda, katta assortiment" },
-    { title: "Yog'och va laminat", subtitle: "Keng tanlov, yuqori sifat" },
-    { title: "Qurilish asbob-uskunalari", subtitle: "Professional vositalar arzon narxda" },
-  ]
-  for (const ad of adsData) {
-    await prisma.ad.create({
-      data: {
-        title: ad.title,
-        subtitle: ad.subtitle,
-        work_status: WORK_STATUS.WORKING,
-        expired: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-      },
-    })
-  }
-  console.log(`OK: ${adsData.length} ta reklama (banner)`)
-
-  console.log("\nSeed tayyor!")
+  /* ── Xulosa ──────────────────────────────────────────── */
+  console.log('╔══════════════════════════════════════════════════╗');
+  console.log('║        ✅  SEED MUVAFFAQIYATLI YAKUNLANDI        ║');
+  console.log('╠══════════════════════════════════════════════════╣');
+  console.log(
+    `║  Regionlar:       ${String(regions.length).padStart(4)}                         ║`,
+  );
+  console.log(
+    `║  O'lchov birligi: ${String(unitTypes.length).padStart(4)}                         ║`,
+  );
+  console.log(
+    `║  Kategoriyalar:   ${String(catCount).padStart(4)}                         ║`,
+  );
+  console.log(
+    `║  Tovarlar:        ${String(prodCount).padStart(4)}                         ║`,
+  );
+  console.log(
+    `║  Variantlar:      ${String(itemCount).padStart(4)}                         ║`,
+  );
+  console.log(
+    `║  Do'konlar:       ${String(dbShops.length).padStart(4)}                         ║`,
+  );
+  console.log(
+    `║  Shop-tovarlar:   ${String(spCount).padStart(4)}                         ║`,
+  );
+  console.log('╚══════════════════════════════════════════════════╝');
 }
 
 main()
-  .catch(e => { console.error(e); process.exit(1) })
-  .finally(async () => { await prisma.$disconnect() })
+  .catch((e) => {
+    console.error('❌ Seed xatolik:', e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
