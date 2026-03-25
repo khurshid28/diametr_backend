@@ -6,6 +6,7 @@ import {
   Param,
   Delete,
   Put,
+  Patch,
   Query,
   UseGuards,
   UseInterceptors,
@@ -131,5 +132,14 @@ export class ShopController {
   @ApiParam({ name: 'id', type: Number })
   remove(@Param('id') id: string) {
     return this.shopService.remove(+id);
+  }
+
+  @Patch(':id/block')
+  @UseGuards(RolesGuardFactory([Role.SUPER]))
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: "Do'konni bloklash/ochish (SUPER)" })
+  @ApiParam({ name: 'id', type: Number })
+  toggleBlock(@Param('id') id: string) {
+    return this.shopService.toggleBlock(+id);
   }
 }

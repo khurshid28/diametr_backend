@@ -203,4 +203,15 @@ export class ShopService {
       where: { id },
     });
   }
+
+  async toggleBlock(id: number) {
+    const shop = await this.prisma.shop.findUnique({ where: { id } });
+    if (!shop) throw new NotFoundException('shop not found');
+    const newStatus = shop.work_status === 'BLOCKED' ? 'WORKING' : 'BLOCKED';
+    return this.prisma.shop.update({
+      where: { id },
+      data: { work_status: newStatus },
+      select: { id: true, work_status: true },
+    });
+  }
 }
