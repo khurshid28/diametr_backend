@@ -65,9 +65,22 @@ export class SubscriptionService implements OnModuleInit {
     return { ...shop, subscription_price: settings.subscription_price };
   }
 
-  async payFromBalance(shopId: number) {
+  private static readonly DISCOUNT_MAP: Record<number, number> = {
+    1: 0,
+    3: 10,
+    6: 20,
+    12: 30,
+  };
+
+  calcPlanPrice(monthlyPrice: number, months: number) {
+    const discount = SubscriptionService.DISCOUNT_MAP[months] ?? 0;
+    const total = monthlyPrice * months;
+    return Math.round(total * (1 - discount / 100));
+  }
+
+  async payFromBalance(shopId: number, months = 1) {
     const settings = await this.ensureSettings();
-    const price = settings.subscription_price;
+    const price = this.calcPlanPrice(settings.subscription_price, months);
     const shop = await this.prisma.shop.findUniqueOrThrow({
       where: { id: shopId },
     });
@@ -79,12 +92,31 @@ export class SubscriptionService implements OnModuleInit {
     const now = new Date();
     const base =
       shop.expired && shop.expired > now ? shop.expired : now;
-    await this.deductAndExtend(shop.id, shop.balance ?? 0, price, base);
     const newBalance = (shop.balance ?? 0) - price;
     const newExpired = new Date(base);
-    newExpired.setMonth(newExpired.getMonth() + 1);
+    newExpired.setMonth(newExpired.getMonth() + months);
+
+    await this.prisma.shop.update({
+      where: { id: shopId },
+      data: {
+        balance: newBalance,
+        expired: newExpired,
+        work_status: 'WORKING',
+      },
+    });
+
+    await this.prisma.shopBalanceLog.create({
+      data: {
+        shop_id: shopId,
+        amount: -price,
+        type: BALANCE_TYPE.SUBSCRIPTION_DEDUCT,
+        note: `Balansdan obuna +${months} oy`,
+        balance_after: newBalance,
+      },
+    });
+
     return {
-      message: 'Obuna muvaffaqiyatli uzaytirildi',
+      message: `Obuna ${months} oyga muvaffaqiyatli uzaytirildi`,
       balance: newBalance,
       expired: newExpired,
     };

@@ -49,3 +49,10 @@ export class ToggleAutoPaymentDto {
   @IsBoolean()
   auto_payment: boolean;
 }
+
+export class PayFromBalanceDto {
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  months?: number;
+}

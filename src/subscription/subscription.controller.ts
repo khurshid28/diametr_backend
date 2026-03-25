@@ -22,6 +22,7 @@ import { RolesGuardFactory } from 'src/_guard/roles.guard';
 import { SubscriptionService } from './subscription.service';
 import {
   GiveFreeTrialDto,
+  PayFromBalanceDto,
   SetExpiryDto,
   ToggleAutoPaymentDto,
   TopUpDto,
@@ -135,9 +136,9 @@ export class SubscriptionController {
   @Post('pay-from-balance')
   @UseGuards(RolesGuardFactory([Role.ADMIN]))
   @ApiOperation({ summary: "Balansdan obuna to'lash (ADMIN)" })
-  payFromBalance(@Req() req: any) {
+  payFromBalance(@Req() req: any, @Body() dto: PayFromBalanceDto) {
     const shopId = req['user']?.shop?.id ?? req['user']?.shop_id;
-    return this.service.payFromBalance(shopId);
+    return this.service.payFromBalance(shopId, dto.months);
   }
 
   @Patch('auto-payment')
