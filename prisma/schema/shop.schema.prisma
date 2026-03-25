@@ -14,6 +14,7 @@ model Shop {
     fixed_delivery Boolean @default(true)
     expired DateTime?
     balance Int @default(0)
+    auto_payment Boolean @default(true)
 
     region_id Int?
     region    Region? @relation(fields: [region_id], references: [id])

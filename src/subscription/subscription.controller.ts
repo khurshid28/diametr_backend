@@ -23,6 +23,7 @@ import { SubscriptionService } from './subscription.service';
 import {
   GiveFreeTrialDto,
   SetExpiryDto,
+  ToggleAutoPaymentDto,
   TopUpDto,
   UpdateSettingsDto,
 } from './dto/subscription.dto';
@@ -89,6 +90,17 @@ export class SubscriptionController {
     return this.service.setExpiry(shopId, dto.expired, dto.note);
   }
 
+  @Patch('auto-payment/:shopId')
+  @UseGuards(RolesGuardFactory([Role.SUPER]))
+  @ApiOperation({ summary: "Do'kon avto to'lovini yoqish/o'chirish (SUPER)" })
+  @ApiParam({ name: 'shopId', type: Number })
+  toggleAutoPaymentSuper(
+    @Param('shopId', ParseIntPipe) shopId: number,
+    @Body() dto: ToggleAutoPaymentDto,
+  ) {
+    return this.service.toggleAutoPayment(shopId, dto.auto_payment);
+  }
+
   @Get('logs/:shopId')
   @UseGuards(RolesGuardFactory([Role.SUPER]))
   @ApiOperation({ summary: "Do'kon hisobi jurnali (SUPER)" })
@@ -118,6 +130,14 @@ export class SubscriptionController {
   getMyLogs(@Req() req: any, @Query('take') take?: string) {
     const shopId = req['user']?.shop?.id ?? req['user']?.shop_id;
     return this.service.getBalanceLogs(shopId, take ? +take : 20);
+  }
+
+  @Patch('auto-payment')
+  @UseGuards(RolesGuardFactory([Role.ADMIN]))
+  @ApiOperation({ summary: "Avto to'lov yoqish/o'chirish (ADMIN)" })
+  toggleAutoPayment(@Req() req: any, @Body() dto: ToggleAutoPaymentDto) {
+    const shopId = req['user']?.shop?.id ?? req['user']?.shop_id;
+    return this.service.toggleAutoPayment(shopId, dto.auto_payment);
   }
 
   // ── Payment webhooks (PUBLIC) ─────────────────────────────────────────────

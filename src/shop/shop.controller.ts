@@ -73,6 +73,15 @@ export class ShopController {
     return this.shopService.findAll(regions);
   }
 
+  @Get('/all-admin')
+  @UseGuards(RolesGuardFactory([Role.SUPER]))
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: 'Barcha do\'konlar (SUPER, bloklangan ham)' })
+  @ApiQuery({ name: 'regions', required: false, type: String })
+  findAllAdmin(@Query('regions') regions?: string) {
+    return this.shopService.findAll(regions, true);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Bitta do’kon' })
   @ApiParam({ name: 'id', type: Number })

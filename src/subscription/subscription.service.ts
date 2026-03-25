@@ -51,10 +51,19 @@ export class SubscriptionService implements OnModuleInit {
   async getShopBalance(shopId: number) {
     const shop = await this.prisma.shop.findUnique({
       where: { id: shopId },
-      select: { id: true, name: true, balance: true, expired: true },
+      select: { id: true, name: true, balance: true, expired: true, auto_payment: true },
     });
     if (!shop) throw new NotFoundException('Shop not found');
     return shop;
+  }
+
+  async toggleAutoPayment(shopId: number, value: boolean) {
+    await this.prisma.shop.findUniqueOrThrow({ where: { id: shopId } });
+    return this.prisma.shop.update({
+      where: { id: shopId },
+      data: { auto_payment: value },
+      select: { id: true, auto_payment: true },
+    });
   }
 
   async getBalanceLogs(shopId: number, take = 20) {
@@ -73,6 +82,7 @@ export class SubscriptionService implements OnModuleInit {
         balance: true,
         expired: true,
         work_status: true,
+        auto_payment: true,
         admins: { select: { fullname: true, phone: true, chat_id: true } },
       },
       orderBy: { balance: 'asc' },
@@ -102,7 +112,7 @@ export class SubscriptionService implements OnModuleInit {
 
     const settings = await this.ensureSettings();
     const price = settings.subscription_price;
-    if (newBalance >= price) {
+    if (shop.auto_payment !== false && newBalance >= price) {
       const now = new Date();
       const expired = shop.expired;
       if (!expired || expired <= now) {
@@ -346,7 +356,7 @@ export class SubscriptionService implements OnModuleInit {
         const balance = shop.balance ?? 0;
 
         if (daysLeft <= 0) {
-          if (balance >= price) {
+          if (balance >= price && shop.auto_payment !== false) {
             await this.deductAndExtend(shop.id, balance, price, now);
             const next = new Date(now);
             next.setMonth(next.getMonth() + 1);

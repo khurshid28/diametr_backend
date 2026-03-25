@@ -47,14 +47,14 @@ export class ShopService {
     return shop;
   }
 
-  async findAll(regions?: string) {
+  async findAll(regions?: string, allStatus = false) {
     this.logger.log('findAll');
     const regionIds = regions
       ? regions.split(',').map(Number).filter(Boolean)
       : null;
     const shops = await this.prisma.shop.findMany({
       where: {
-        work_status: 'WORKING',
+        ...(allStatus ? { work_status: { not: 'DELETED' } } : { work_status: 'WORKING' }),
         ...(regionIds && regionIds.length > 0
           ? { region_id: { in: regionIds } }
           : {}),

@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsDateString,
   IsInt,
   IsOptional,
@@ -42,4 +43,9 @@ export class SetExpiryDto {
   @IsOptional()
   @IsString()
   note?: string;
+}
+
+export class ToggleAutoPaymentDto {
+  @IsBoolean()
+  auto_payment: boolean;
 }
