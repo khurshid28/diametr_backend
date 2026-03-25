@@ -19,16 +19,17 @@ export class ShopService {
       throw new NotFoundException('Region not found');
     }
 
-    // Apply free trial from settings
+    // Apply free trial
     const settings = await this.prisma.settings.findUnique({
       where: { id: 1 },
     });
-    const trialMonths = settings?.free_trial_months ?? 2;
+    const trialMonths = data.free_trial_months ?? settings?.free_trial_months ?? 2;
     const expired = new Date();
     expired.setMonth(expired.getMonth() + trialMonths);
 
+    const { free_trial_months: _, ...shopData } = data;
     const shop = await this.prisma.shop.create({
-      data: { ...data, expired },
+      data: { ...shopData, expired },
     });
 
     // Log the free trial

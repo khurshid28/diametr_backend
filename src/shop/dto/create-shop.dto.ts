@@ -1,7 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
 import {
-  IsDate,
+  IsInt,
   IsNotEmpty,
   IsNumber,
   IsNumberString,
@@ -10,7 +9,6 @@ import {
   Min,
   MinLength,
 } from 'class-validator';
-import { addHours, parse } from 'date-fns';
 
 export class CreateShopDto {
   @ApiProperty({ example: 'Mega Market', description: 'Do’kon nomi', minLength: 4 })
@@ -19,11 +17,11 @@ export class CreateShopDto {
   @MinLength(4)
   name: string;
 
-  @ApiProperty({ example: '2026-12-31', description: 'Muddati tugash sanasi (yyyy-MM-dd)' })
-  @Transform(({ value }) => addHours(parse(value, 'yyyy-MM-dd', new Date()), 5))
-  @IsDate({ message: 'expired has wrong format. format: yyyy-MM-dd (2025-08-01)' })
-  @IsNotEmpty()
-  expired: string;
+  @ApiPropertyOptional({ example: 2, description: 'Bepul sinov muddati (oy)' })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  free_trial_months?: number;
 
   @ApiPropertyOptional({ example: '123456789', description: 'INN', minLength: 8 })
   @IsOptional()
