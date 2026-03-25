@@ -22,6 +22,7 @@ import { RolesGuardFactory } from 'src/_guard/roles.guard';
 import { SubscriptionService } from './subscription.service';
 import {
   GiveFreeTrialDto,
+  SetExpiryDto,
   TopUpDto,
   UpdateSettingsDto,
 } from './dto/subscription.dto';
@@ -75,6 +76,17 @@ export class SubscriptionController {
     @Body() dto: GiveFreeTrialDto,
   ) {
     return this.service.giveFffreeTrial(shopId, dto.months);
+  }
+
+  @Patch('set-expiry/:shopId')
+  @UseGuards(RolesGuardFactory([Role.SUPER]))
+  @ApiOperation({ summary: "Do'kon obuna muddatini belgilash (SUPER)" })
+  @ApiParam({ name: 'shopId', type: Number })
+  setExpiry(
+    @Param('shopId', ParseIntPipe) shopId: number,
+    @Body() dto: SetExpiryDto,
+  ) {
+    return this.service.setExpiry(shopId, dto.expired, dto.note);
   }
 
   @Get('logs/:shopId')

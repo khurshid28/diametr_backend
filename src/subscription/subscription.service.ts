@@ -159,6 +159,39 @@ export class SubscriptionService implements OnModuleInit {
     return { expired: newExpired };
   }
 
+  // ── Set expiry ──────────────────────────────────────────────────────────────
+  async setExpiry(shopId: number, expiredStr: string, note?: string) {
+    const shop = await this.prisma.shop.findUniqueOrThrow({
+      where: { id: shopId },
+    });
+    const newExpired = new Date(expiredStr);
+
+    await this.prisma.shop.update({
+      where: { id: shopId },
+      data: { expired: newExpired, work_status: 'WORKING' },
+    });
+
+    await this.prisma.shopBalanceLog.create({
+      data: {
+        shop_id: shopId,
+        amount: 0,
+        type: BALANCE_TYPE.FREE_TRIAL,
+        note:
+          note ||
+          `Muddati belgilandi: ${newExpired.toLocaleDateString('ru-RU')} gacha`,
+        balance_after: shop.balance ?? 0,
+      },
+    });
+
+    const formatted = newExpired.toLocaleDateString('ru-RU');
+    await this.notifyShopAdmin(
+      shopId,
+      `Do'koningiz obuna muddati ${formatted} gacha belgilandi.`,
+    );
+
+    return { expired: newExpired };
+  }
+
   // тФАтФА Click webhook тФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФАтФА
   async handleClickWebhook(body: any) {
     const serviceId = process.env.CLICK_SERVICE_ID;

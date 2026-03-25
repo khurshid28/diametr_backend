@@ -1,4 +1,4 @@
-import { IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsDateString, IsInt, IsOptional, IsString, Min } from 'class-validator';
 
 export class TopUpDto {
   @IsInt()
@@ -27,4 +27,13 @@ export class GiveFreeTrialDto {
   @IsInt()
   @Min(1)
   months?: number;
+}
+
+export class SetExpiryDto {
+  @IsDateString()
+  expired: string;
+
+  @IsOptional()
+  @IsString()
+  note?: string;
 }
