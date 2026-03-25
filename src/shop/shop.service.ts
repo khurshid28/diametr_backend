@@ -25,12 +25,16 @@ export class ShopService {
     });
     const trialMonths =
       data.free_trial_months ?? settings?.free_trial_months ?? 2;
-    const expired = new Date();
-    expired.setMonth(expired.getMonth() + trialMonths);
+
+    let expired: Date | null = null;
+    if (trialMonths > 0) {
+      expired = new Date();
+      expired.setMonth(expired.getMonth() + trialMonths);
+    }
 
     const { free_trial_months: _, ...shopData } = data;
     const shop = await this.prisma.shop.create({
-      data: { ...shopData, expired },
+      data: { ...shopData, ...(expired ? { expired } : {}) },
     });
 
     // Log the free trial
@@ -39,7 +43,10 @@ export class ShopService {
         shop_id: shop.id,
         amount: 0,
         type: 'FREE_TRIAL',
-        note: `Bepul sinov: ${trialMonths} oy → ${expired.toISOString().slice(0, 10)}`,
+        note:
+          trialMonths > 0
+            ? `Bepul sinov: ${trialMonths} oy → ${expired!.toISOString().slice(0, 10)}`
+            : 'Bepul sinov berilmadi',
         balance_after: 0,
       },
     });

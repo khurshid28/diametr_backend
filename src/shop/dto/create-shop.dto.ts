@@ -21,10 +21,13 @@ export class CreateShopDto {
   @MinLength(4)
   name: string;
 
-  @ApiPropertyOptional({ example: 2, description: 'Bepul sinov muddati (oy)' })
+  @ApiPropertyOptional({
+    example: 2,
+    description: 'Bepul sinov muddati (oy, 0 = muddatsiz)',
+  })
   @IsOptional()
   @IsInt()
-  @Min(1)
+  @Min(0)
   free_trial_months?: number;
 
   @ApiPropertyOptional({
