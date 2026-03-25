@@ -29,7 +29,7 @@ export class SubscriptionService implements OnModuleInit {
     const s = await this.prisma.settings.findUnique({ where: { id: 1 } });
     if (!s) {
       return this.prisma.settings.create({
-        data: { id: 1, free_trial_months: 1, subscription_price: 50000 },
+        data: { id: 1, free_trial_months: 2, subscription_price: 50000 },
       });
     }
     return s;
