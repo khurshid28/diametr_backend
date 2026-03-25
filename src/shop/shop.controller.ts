@@ -1,5 +1,25 @@
-import { Controller, Get, Post, Body, Param, Delete, Put, Query, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
-import { ApiBody, ApiConsumes, ApiBearerAuth, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Delete,
+  Put,
+  Query,
+  UseGuards,
+  UseInterceptors,
+  UploadedFile,
+} from '@nestjs/common';
+import {
+  ApiBody,
+  ApiConsumes,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
@@ -58,16 +78,22 @@ export class ShopController {
   @UseGuards(RolesGuardFactory([Role.ADMIN, Role.SUPER]))
   @ApiBearerAuth('JWT')
   @ApiOperation({ summary: "URL dan rasm yuklab saqlab qo'yish (ADMIN/SUPER)" })
-  @ApiBody({ schema: { type: 'object', properties: { url: { type: 'string' } } } })
+  @ApiBody({
+    schema: { type: 'object', properties: { url: { type: 'string' } } },
+  })
   async uploadImageFromUrl(@Body() body: { url: string }) {
     const response = await axios.get(body.url, { responseType: 'arraybuffer' });
-    const filename = Date.now() + '-' + Math.round(Math.random() * 1e9) + '.jpg';
-    writeFileSync(join(process.cwd(), 'public', 'shops', filename), Buffer.from(response.data));
+    const filename =
+      Date.now() + '-' + Math.round(Math.random() * 1e9) + '.jpg';
+    writeFileSync(
+      join(process.cwd(), 'public', 'shops', filename),
+      Buffer.from(response.data),
+    );
     return { image: filename };
   }
 
   @Get('/all')
-  @ApiOperation({ summary: 'Barcha do\'konlar ro\'yxati' })
+  @ApiOperation({ summary: "Barcha do'konlar ro'yxati" })
   @ApiQuery({ name: 'regions', required: false, type: String })
   findAll(@Query('regions') regions?: string) {
     return this.shopService.findAll(regions);
@@ -76,7 +102,7 @@ export class ShopController {
   @Get('/all-admin')
   @UseGuards(RolesGuardFactory([Role.SUPER]))
   @ApiBearerAuth('JWT')
-  @ApiOperation({ summary: 'Barcha do\'konlar (SUPER, bloklangan ham)' })
+  @ApiOperation({ summary: "Barcha do'konlar (SUPER, bloklangan ham)" })
   @ApiQuery({ name: 'regions', required: false, type: String })
   findAllAdmin(@Query('regions') regions?: string) {
     return this.shopService.findAll(regions, true);

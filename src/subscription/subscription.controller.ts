@@ -132,6 +132,14 @@ export class SubscriptionController {
     return this.service.getBalanceLogs(shopId, take ? +take : 20);
   }
 
+  @Post('pay-from-balance')
+  @UseGuards(RolesGuardFactory([Role.ADMIN]))
+  @ApiOperation({ summary: "Balansdan obuna to'lash (ADMIN)" })
+  payFromBalance(@Req() req: any) {
+    const shopId = req['user']?.shop?.id ?? req['user']?.shop_id;
+    return this.service.payFromBalance(shopId);
+  }
+
   @Patch('auto-payment')
   @UseGuards(RolesGuardFactory([Role.ADMIN]))
   @ApiOperation({ summary: "Avto to'lov yoqish/o'chirish (ADMIN)" })

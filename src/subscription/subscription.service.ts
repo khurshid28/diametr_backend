@@ -1,4 +1,5 @@
 ﻿import {
+  BadRequestException,
   Injectable,
   Logger,
   NotFoundException,
@@ -51,10 +52,42 @@ export class SubscriptionService implements OnModuleInit {
   async getShopBalance(shopId: number) {
     const shop = await this.prisma.shop.findUnique({
       where: { id: shopId },
-      select: { id: true, name: true, balance: true, expired: true, auto_payment: true },
+      select: {
+        id: true,
+        name: true,
+        balance: true,
+        expired: true,
+        auto_payment: true,
+      },
     });
     if (!shop) throw new NotFoundException('Shop not found');
-    return shop;
+    const settings = await this.ensureSettings();
+    return { ...shop, subscription_price: settings.subscription_price };
+  }
+
+  async payFromBalance(shopId: number) {
+    const settings = await this.ensureSettings();
+    const price = settings.subscription_price;
+    const shop = await this.prisma.shop.findUniqueOrThrow({
+      where: { id: shopId },
+    });
+    if ((shop.balance ?? 0) < price) {
+      throw new BadRequestException(
+        `Balansda yetarli mablag' yo'q. Kerak: ${price} so'm, balans: ${shop.balance ?? 0} so'm`,
+      );
+    }
+    const now = new Date();
+    const base =
+      shop.expired && shop.expired > now ? shop.expired : now;
+    await this.deductAndExtend(shop.id, shop.balance ?? 0, price, base);
+    const newBalance = (shop.balance ?? 0) - price;
+    const newExpired = new Date(base);
+    newExpired.setMonth(newExpired.getMonth() + 1);
+    return {
+      message: 'Obuna muvaffaqiyatli uzaytirildi',
+      balance: newBalance,
+      expired: newExpired,
+    };
   }
 
   async toggleAutoPayment(shopId: number, value: boolean) {

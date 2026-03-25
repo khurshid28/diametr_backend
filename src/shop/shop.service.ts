@@ -54,7 +54,9 @@ export class ShopService {
       : null;
     const shops = await this.prisma.shop.findMany({
       where: {
-        ...(allStatus ? { work_status: { not: 'DELETED' } } : { work_status: 'WORKING' }),
+        ...(allStatus
+          ? { work_status: { not: 'DELETED' } }
+          : { work_status: 'WORKING' }),
         ...(regionIds && regionIds.length > 0
           ? { region_id: { in: regionIds } }
           : {}),
