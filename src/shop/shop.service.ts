@@ -23,7 +23,8 @@ export class ShopService {
     const settings = await this.prisma.settings.findUnique({
       where: { id: 1 },
     });
-    const trialMonths = data.free_trial_months ?? settings?.free_trial_months ?? 2;
+    const trialMonths =
+      data.free_trial_months ?? settings?.free_trial_months ?? 2;
     const expired = new Date();
     expired.setMonth(expired.getMonth() + trialMonths);
 

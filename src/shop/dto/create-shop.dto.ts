@@ -11,7 +11,11 @@ import {
 } from 'class-validator';
 
 export class CreateShopDto {
-  @ApiProperty({ example: 'Mega Market', description: 'Do’kon nomi', minLength: 4 })
+  @ApiProperty({
+    example: 'Mega Market',
+    description: 'Do’kon nomi',
+    minLength: 4,
+  })
   @IsNotEmpty()
   @IsString()
   @MinLength(4)
@@ -23,7 +27,11 @@ export class CreateShopDto {
   @Min(1)
   free_trial_months?: number;
 
-  @ApiPropertyOptional({ example: '123456789', description: 'INN', minLength: 8 })
+  @ApiPropertyOptional({
+    example: '123456789',
+    description: 'INN',
+    minLength: 8,
+  })
   @IsOptional()
   @IsNumberString()
   @MinLength(8)
@@ -37,12 +45,19 @@ export class CreateShopDto {
   @IsNumber()
   lon: number;
 
-  @ApiPropertyOptional({ example: 'Toshkent, Chilonzor tumani', description: 'Manzil' })
+  @ApiPropertyOptional({
+    example: 'Toshkent, Chilonzor tumani',
+    description: 'Manzil',
+  })
   @IsOptional()
   @IsString()
   address: string;
 
-  @ApiPropertyOptional({ example: 5000, description: 'Yetkazib berish narxi (so‘m)', minimum: 0 })
+  @ApiPropertyOptional({
+    example: 5000,
+    description: 'Yetkazib berish narxi (so‘m)',
+    minimum: 0,
+  })
   @IsNumber()
   @IsOptional()
   @Min(0)

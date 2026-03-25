@@ -36,7 +36,10 @@ export class ShopProductService {
   async findAll() {
     this.logger.log('findAll');
     const shopProducts = await this.prisma.shopProduct.findMany({
-      where: { work_status: 'WORKING' },
+      where: {
+        work_status: 'WORKING',
+        shop: { work_status: 'WORKING' },
+      },
       orderBy: { id: 'desc' },
       include: {
         product_item: {
@@ -92,6 +95,7 @@ export class ShopProductService {
         shop_id: sId,
         work_status: 'WORKING',
         product_item: { product_id: pId },
+        shop: { work_status: 'WORKING' },
       },
       include: {
         product_item: {
@@ -129,6 +133,7 @@ export class ShopProductService {
         shop_id: sId,
         work_status: 'WORKING',
         NOT: { product_item: { product_id: pId } },
+        shop: { work_status: 'WORKING' },
       },
       include: {
         product_item: {
