@@ -27,10 +27,15 @@ export class AdminGuard implements CanActivate {
       throw new UnauthorizedException();
     }
 
-    const payload: {
+    let payload: {
       role: Role;
       user_id: number;
-    } = await this.jwtService.verifyAsync(token);
+    };
+    try {
+      payload = await this.jwtService.verifyAsync(token);
+    } catch (e) {
+      throw new UnauthorizedException();
+    }
     let where = { id: payload.user_id };
     let user: any;
     

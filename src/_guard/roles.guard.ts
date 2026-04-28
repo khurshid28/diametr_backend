@@ -22,8 +22,12 @@ export function RolesGuardFactory(roles: Role[]): any {
       const token = request.headers.authorization?.split(' ')[1];
       if (!token) throw new UnauthorizedException();
 
-      const payload: { role: Role; user_id: number; source?: string } =
-        await this.jwtService.verifyAsync(token);
+      let payload: { role: Role; user_id: number; source?: string };
+      try {
+        payload = await this.jwtService.verifyAsync(token);
+      } catch (e) {
+        throw new UnauthorizedException('Invalid or expired token');
+      }
 
       const isAllowed = roles.includes(payload.role);
       if (!isAllowed) throw new UnauthorizedException('Access denied');

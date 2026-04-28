@@ -22,7 +22,12 @@ export class StoreGuard implements CanActivate {
     const token = request.headers.authorization?.split(' ')[1];
     if (!token) throw new UnauthorizedException('Store token required');
 
-    const payload: { source?: string } = await this.jwtService.verifyAsync(token);
+    let payload: { source?: string };
+    try {
+      payload = await this.jwtService.verifyAsync(token);
+    } catch (e) {
+      throw new UnauthorizedException('Invalid or expired token');
+    }
     if (payload.source !== 'STORE_BOT') {
       throw new ForbiddenException('Bu sahifaga faqat Telegram bot orqali kirish mumkin.');
     }

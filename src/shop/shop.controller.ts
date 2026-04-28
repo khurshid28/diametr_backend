@@ -22,6 +22,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
+import type { Express } from 'express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { writeFileSync } from 'fs';

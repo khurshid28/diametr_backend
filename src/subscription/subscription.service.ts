@@ -90,7 +90,8 @@ export class SubscriptionService implements OnModuleInit {
       );
     }
     const now = new Date();
-    const base = nst newBalance = (shop.balance ?? 0) - price;
+    const base = shop.expired && shop.expired > now ? shop.expired : now;
+    const newBalance = (shop.balance ?? 0) - price;
     const newExpired = new Date(base);
     newExpired.setMonth(newExpired.getMonth() + months);
 

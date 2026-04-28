@@ -1,7 +1,9 @@
 model UnitType {
-    id     Int     @id @default(autoincrement())
-    name   String  // "Kilogramm"
-    symbol String  // "kg"
+    id      Int     @id @default(autoincrement())
+    name    String  // legacy / fallback ("Kilogramm")
+    name_uz String? // "Kilogramm"
+    name_ru String? // "Килограмм"
+    symbol  String  // "kg"
 
     products      Product[]
     product_items ProductItem[]

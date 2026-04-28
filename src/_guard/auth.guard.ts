@@ -27,10 +27,15 @@ import { PrismaClientService } from 'src/_prisma_client/prisma_client.service';
         throw new UnauthorizedException();
       }
   
-      const payload : {
-        role : Role,
-        user_id : number
-      } = await this.jwtService.verifyAsync(token);
+      let payload: {
+        role: Role,
+        user_id: number
+      };
+      try {
+        payload = await this.jwtService.verifyAsync(token);
+      } catch (e) {
+        throw new UnauthorizedException();
+      }
      let where  = {   id: payload.user_id}
       let user: any;
       if (payload.role == Role.USER) {
