@@ -10,8 +10,17 @@ until nc -zw 3 "$DB_HOST" "$DB_PORT" 2>/dev/null; do
 done
 echo "[entrypoint] MySQL is ready."
 
-echo "[entrypoint] Running Prisma migrate deploy ..."
-npx prisma migrate deploy
+# If migrations exist, apply them. Otherwise fall back to `db push` so
+# the schema (including new models like Settings) is synced to the database.
+if [ -d prisma/migrations ] && [ -n "$(ls -A prisma/migrations 2>/dev/null | grep -v '^migration_lock\.toml$' || true)" ]; then
+    echo "[entrypoint] Running Prisma migrate deploy ..."
+    npx prisma migrate deploy
+else
+    echo "[entrypoint] No migrations found — running Prisma db push ..."
+    # NB: without --accept-data-loss prisma will refuse if a destructive
+    # change is detected. That is intentional for production safety.
+    npx prisma db push --skip-generate
+fi
 
 echo "[entrypoint] Starting NestJS application ..."
 # Nest build output: when only src/ is compiled, entry is dist/main.js;
