@@ -25,7 +25,15 @@ async function main() {
   app.useBodyParser('urlencoded', { limit: '20mb', extended: true });
   app.useBodyParser('text', { limit: '20mb', extended: true });
 
-  app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+    }),
+  );
   app.useGlobalInterceptors(new ResponseLoggingInterceptor());
   app.useGlobalFilters(new GlobalExceptionFilter());
 

@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsInt,
   IsNotEmpty,
@@ -41,10 +42,12 @@ export class CreateShopDto {
   inn: string;
 
   @ApiProperty({ example: 41.2995, description: 'Kenglik (latitude)' })
+  @Type(() => Number)
   @IsNumber()
   lat: number;
 
   @ApiProperty({ example: 69.2401, description: 'Uzunlik (longitude)' })
+  @Type(() => Number)
   @IsNumber()
   lon: number;
 
@@ -61,12 +64,14 @@ export class CreateShopDto {
     description: 'Yetkazib berish narxi (so‘m)',
     minimum: 0,
   })
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   @Min(0)
   delivery_amount: number;
 
   @ApiProperty({ example: 1, description: 'Hudud ID', minimum: 1 })
+  @Type(() => Number)
   @IsNumber()
   @IsNotEmpty()
   @Min(1)
