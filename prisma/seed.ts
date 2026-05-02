@@ -45,12 +45,12 @@ const regions = [
    2. O'LCHOV BIRLI
    ═══════════════════════════════════════════════════════════════ */
 const unitTypes = [
+  { name: 'Dona', symbol: 'dona' },
   { name: 'Kilogramm', symbol: 'kg' },
   { name: 'Tonna', symbol: 't' },
   { name: 'Litr', symbol: 'L' },
   { name: 'Metr', symbol: 'm' },
   { name: 'Kvadrat metr', symbol: 'm²' },
-  { name: 'Dona', symbol: 'dona' },
   { name: "O'lcham (x*y)", symbol: 'x*y' },
   { name: "O'lcham (x*y*z)", symbol: 'x*y*z' },
 ];
@@ -754,18 +754,60 @@ async function main() {
 
   /* ── O'lchov birliklari ─────────────────────────────────── */
   console.log("📏  O'lchov birliklari...");
+  const expectedSymbols = new Set(unitTypes.map((unit) => unit.symbol));
+  const existingUnits = await prisma.unitType.findMany({ orderBy: { id: 'asc' } });
+  const unexpectedIds = existingUnits
+    .filter((unit) => !expectedSymbols.has(unit.symbol))
+    .map((unit) => unit.id);
+
+  if (unexpectedIds.length > 0) {
+    await prisma.product.updateMany({
+      where: { unit_type_id: { in: unexpectedIds } },
+      data: { unit_type_id: null },
+    });
+    await prisma.productItem.updateMany({
+      where: { unit_type_id: { in: unexpectedIds } },
+      data: { unit_type_id: null },
+    });
+    await prisma.unitType.deleteMany({ where: { id: { in: unexpectedIds } } });
+    console.log(`   ⚠️ ${unexpectedIds.length} ta eski noto'g'ri unit type o'chirildi va referenslar null qilindi`);
+  }
+
   const unitMap = new Map<string, number>();
   for (const ut of unitTypes) {
-    const existing = await prisma.unitType.findFirst({
-      where: {"symbol ut.symbol },"
+    const duplicates = await prisma.unitType.findMany({
+      where: { symbol: ut.symbol },
+      orderBy: { id: 'asc' },
     });
-    if (existing) {
-      unitMap.set(ut.symbol, existing.id);
-    } else {
+
+    if (duplicates.length === 0) {
       const created = await prisma.unitType.create({ data: ut });
       unitMap.set(ut.symbol, created.id);
+      continue;
     }
+
+    const [keep, ...remove] = duplicates;
+    if (remove.length > 0) {
+      const removeIds = remove.map((unit) => unit.id);
+      await prisma.product.updateMany({
+        where: { unit_type_id: { in: removeIds } },
+        data: { unit_type_id: null },
+      });
+      await prisma.productItem.updateMany({
+        where: { unit_type_id: { in: removeIds } },
+        data: { unit_type_id: null },
+      });
+      await prisma.unitType.deleteMany({ where: { id: { in: removeIds } } });
+      console.log(`   ⚠️ duplicate unit type IDlar ${removeIds.join(', ')} o'chirildi (${ut.symbol})`);
+    }
+
+    await prisma.unitType.update({
+      where: { id: keep.id },
+      data: { name: ut.name },
+    });
+    unitMap.set(ut.symbol, keep.id);
   }
+
   console.log(`   ✅ ${unitTypes.length} ta o'lchov birligi\n`);
 
   /* ── Kategoriya → Tovar → Variant ───────────────────────── */
