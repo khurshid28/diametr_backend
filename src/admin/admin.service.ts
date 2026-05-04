@@ -44,7 +44,9 @@ export class AdminService {
 
   async findAll() {
     this.logger.log('findAll');
-    const admins = await this.prisma.admin.findMany();
+    const admins = await this.prisma.admin.findMany({
+      include: { shop: true },
+    });
     return admins;
   }
   async findOne(id: number) {

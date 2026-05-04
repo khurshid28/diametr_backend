@@ -15,8 +15,10 @@ async function main() {
   });
 
   app.enableCors({
-    origin: '*',
+    origin: true,
+    credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: 'Authorization,Content-Type,Accept,Origin,X-Requested-With',
   });
 
   app.setGlobalPrefix('/api/v1');

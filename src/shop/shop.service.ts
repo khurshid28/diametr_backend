@@ -75,6 +75,7 @@ export class ShopService {
           select: { count: true, price: true },
         },
       },
+      orderBy: { id: 'desc' },
     });
 
     return shops.map(({ products, ...shop }) => ({

@@ -41,15 +41,17 @@ export class CreateShopDto {
   @MinLength(8)
   inn: string;
 
-  @ApiProperty({ example: 41.2995, description: 'Kenglik (latitude)' })
+  @ApiPropertyOptional({ example: 41.2995, description: 'Kenglik (latitude)' })
+  @IsOptional()
   @Type(() => Number)
   @IsNumber()
-  lat: number;
+  lat?: number;
 
-  @ApiProperty({ example: 69.2401, description: 'Uzunlik (longitude)' })
+  @ApiPropertyOptional({ example: 69.2401, description: 'Uzunlik (longitude)' })
+  @IsOptional()
   @Type(() => Number)
   @IsNumber()
-  lon: number;
+  lon?: number;
 
   @ApiPropertyOptional({
     example: 'Toshkent, Chilonzor tumani',
@@ -70,10 +72,18 @@ export class CreateShopDto {
   @Min(0)
   delivery_amount: number;
 
-  @ApiProperty({ example: 1, description: 'Hudud ID', minimum: 1 })
+  @ApiPropertyOptional({ example: 1, description: 'Hudud ID', minimum: 1 })
+  @IsOptional()
   @Type(() => Number)
   @IsNumber()
-  @IsNotEmpty()
   @Min(1)
-  region_id: number;
+  region_id?: number;
+
+  @ApiPropertyOptional({
+    example: 'shop-1700000000.jpg',
+    description: "Do'kon rasmi (fayl nomi)",
+  })
+  @IsOptional()
+  @IsString()
+  image?: string;
 }
