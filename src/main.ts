@@ -21,6 +21,14 @@ async function main() {
     allowedHeaders: 'Authorization,Content-Type,Accept,Origin,X-Requested-With',
   });
 
+  // ⚠️ MUHIM: useStaticAssets() setGlobalPrefix() dan OLDIN chaqirilishi kerak,
+  // aks holda /static/* yo'li ham /api/v1 prefiksi bilan kuting deb qoladi.
+  // process.cwd() ishlatamiz, chunki upload'lar ham shu yerga yoziladi
+  // (shop.controller.ts: join(process.cwd(), 'public', 'shops')).
+  app.useStaticAssets(join(process.cwd(), 'public'), {
+    prefix: '/static/',
+  });
+
   app.setGlobalPrefix('/api/v1');
 
   app.useBodyParser('json', { limit: '20mb' });
@@ -38,10 +46,6 @@ async function main() {
   );
   app.useGlobalInterceptors(new ResponseLoggingInterceptor());
   app.useGlobalFilters(new GlobalExceptionFilter());
-
-  app.useStaticAssets(join(__dirname, '..', 'public'), {
-    prefix: '/static/',
-  });
 
   // ─── Swagger ─────────────────────────────────────────────────────────────────
   const swaggerConfig = new DocumentBuilder()
